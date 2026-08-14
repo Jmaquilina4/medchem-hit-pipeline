@@ -1,0 +1,155 @@
+{
+  "pairs_requested": [
+    "BRD4-BRD2",
+    "BRD4-BRD3",
+    "BRD4-BRDT"
+  ],
+  "pairs_supported": [
+    "BRD4-BRD2",
+    "BRD4-BRD3"
+  ],
+  "pairs_unsupported": [
+    "BRD4-BRDT"
+  ],
+  "pairs_not_evaluated": {},
+  "support_note": "An unsupported pair is NOT a modelling failure to be hidden: it means the public data cannot answer the selectivity question for that pair, usually because almost no compound exceeds the threshold. The run continues and the potency model stands on its own. Read every pr_auc against its pr_auc_baseline, never against another target's.",
+  "direct_delta_scaffold_cv": {
+    "BRD4-BRD2": {
+      "n": 776,
+      "n_selective": 17,
+      "r2": 0.2873846277032869,
+      "mae": 0.1832321681701031,
+      "rmse": 0.2982040187061725,
+      "pr_auc": 0.14827769487639347,
+      "roc_auc": 0.7292877625358444,
+      "top10_enrichment": 3.5569136745607337,
+      "pr_auc_baseline": 0.02190721649484536,
+      "pr_auc_lift_over_baseline": 6.768440660240079,
+      "n_splits": 5,
+      "support": {
+        "supported": true,
+        "reasons": [
+          "positive class is 2.2% (17/776) \u2014 classification metrics are unstable and PR-AUC must be read against this baseline, not against another target's PR-AUC"
+        ],
+        "n_paired": 776,
+        "n_selective": 17,
+        "prevalence": 0.02190721649484536,
+        "r2_ci95": [
+          0.20673837450694338,
+          0.37195799433684074
+        ],
+        "r2_distinguishable_from_zero": true
+      }
+    },
+    "BRD4-BRD3": {
+      "n": 803,
+      "n_selective": 11,
+      "r2": 0.19105681872304803,
+      "mae": 0.1597500622665006,
+      "rmse": 0.28596660427896553,
+      "pr_auc": 0.06464425522564778,
+      "roc_auc": 0.835514233241506,
+      "top10_enrichment": 6.3875,
+      "pr_auc_baseline": 0.0136986301369863,
+      "pr_auc_lift_over_baseline": 4.719030631472288,
+      "n_splits": 5,
+      "support": {
+        "supported": true,
+        "reasons": [
+          "positive class is 1.4% (11/803) \u2014 classification metrics are unstable and PR-AUC must be read against this baseline, not against another target's PR-AUC"
+        ],
+        "n_paired": 803,
+        "n_selective": 11,
+        "prevalence": 0.0136986301369863,
+        "r2_ci95": [
+          0.07519383018880885,
+          0.30258901537488886
+        ],
+        "r2_distinguishable_from_zero": true
+      }
+    },
+    "BRD4-BRDT": {
+      "n": 177,
+      "n_selective": 13,
+      "r2": -0.00880682515578357,
+      "mae": 0.30023580508474584,
+      "rmse": 0.46235088557133175,
+      "pr_auc": 0.09370045324341479,
+      "roc_auc": 0.5825515947467167,
+      "top10_enrichment": 0.8009049773755655,
+      "pr_auc_baseline": 0.07344632768361582,
+      "pr_auc_lift_over_baseline": 1.275767709544955,
+      "n_splits": 5,
+      "support": {
+        "supported": false,
+        "reasons": [
+          "R\u00b2 95% CI [-0.114, 0.123] spans zero \u2014 not distinguishable from noise"
+        ],
+        "n_paired": 177,
+        "n_selective": 13,
+        "prevalence": 0.07344632768361582,
+        "r2_ci95": [
+          -0.11357720860462037,
+          0.12274839644165604
+        ],
+        "r2_distinguishable_from_zero": false
+      }
+    }
+  },
+  "direct_vs_potency": {
+    "BRD4-BRD2": {
+      "direct_delta_rf": {
+        "r2": 0.2873846277032869,
+        "pr_auc": 0.14827769487639347
+      },
+      "pot_delta_rf": {
+        "r2": -0.014083576101319384,
+        "pr_auc": 0.15593300444400912
+      },
+      "pot_delta_xgb_desc": {
+        "r2": -0.03910653281736032,
+        "pr_auc": 0.12869355178543831
+      }
+    },
+    "BRD4-BRD3": {
+      "direct_delta_rf": {
+        "r2": 0.19105681872304803,
+        "pr_auc": 0.06464425522564778
+      },
+      "pot_delta_rf": {
+        "r2": 0.1416363620504144,
+        "pr_auc": 0.1251536348661416
+      },
+      "pot_delta_xgb_desc": {
+        "r2": 0.08221074188975863,
+        "pr_auc": 0.21494506664872925
+      }
+    },
+    "BRD4-BRDT": {
+      "direct_delta_rf": {
+        "r2": -0.00880682515578357,
+        "pr_auc": 0.09370045324341479
+      },
+      "pot_delta_rf": {
+        "r2": -0.007644846747808298,
+        "pr_auc": 0.12614738012420193
+      },
+      "pot_delta_xgb_desc": {
+        "r2": -0.20346277233745536,
+        "pr_auc": 0.12432311962792841
+      }
+    }
+  },
+  "comparison_note": "Headline = direct_delta_rf vs pot_delta_rf: identical features (chiral ECFP4 + desc), identical RF, identical folds \u2014 only the target formulation differs. pot_delta_xgb_desc is a secondary tuned-potency variant (different algorithm).",
+  "delta_threshold": 1.0,
+  "production_model": {
+    "written": true,
+    "basis_column": "delta_min_supported",
+    "supported_comparators": [
+      "BRD2",
+      "BRD3"
+    ],
+    "note": "aggregate built from SUPPORTED comparators only (['BRD2', 'BRD3']); unsupported pairs excluded rather than folded into the aggregate",
+    "n_training_compounds": 884
+  }
+}

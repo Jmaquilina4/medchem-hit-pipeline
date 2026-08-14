@@ -1,0 +1,62 @@
+{
+  "describes": "the JAK1 target's assay-label mixture, shared by both of its panels",
+  "target": "JAK1",
+  "panels_sharing_this_record": [
+    "jak1",
+    "jak1_sensitivity"
+  ],
+  "cohort_spec_version": "1.2",
+  "n_assays": 1228,
+  "n_activity_records": 15034,
+  "inputs": {
+    "JAK1_raw.csv": "6dfecf983830fe2bdc9d071ba9ca9c6df504ba584d56bdcdd03b5a3bebc3124c",
+    "JAK1_assays.csv": "3ad9d890a48681f113175fb0432630d8c418b10ccf3daee6c363212472e42f13"
+  },
+  "note": "pct_assays and pct_records have DIFFERENT denominators and differ by up to 3x. Cell-based assays are numerous but small; domain-resolved assays are fewer and larger. Quote which one you mean.",
+  "by_label": {
+    "biochemical": {
+      "assays": 451,
+      "pct_assays": 36.7,
+      "records": 10599,
+      "pct_records": 70.5,
+      "curated_compounds": 6865,
+      "median_pIC50_curated": 7.75
+    },
+    "cell_based": {
+      "assays": 326,
+      "pct_assays": 26.5,
+      "records": 3754,
+      "pct_records": 25.0,
+      "curated_compounds": 777,
+      "median_pIC50_curated": 7.3
+    },
+    "unmatched": {
+      "assays": 383,
+      "pct_assays": 31.2,
+      "records": 605,
+      "pct_records": 4.0,
+      "curated_compounds": 378,
+      "median_pIC50_curated": 7.37
+    },
+    "full_length": {
+      "assays": 5,
+      "pct_assays": 0.4,
+      "records": 52,
+      "pct_records": 0.3,
+      "curated_compounds": 30,
+      "median_pIC50_curated": 7.51
+    },
+    "pseudokinase": {
+      "assays": 63,
+      "pct_assays": 5.1,
+      "records": 24,
+      "pct_records": 0.2,
+      "curated_compounds": 19,
+      "median_pIC50_curated": 9.04
+    }
+  },
+  "median_gaps_log_units": {
+    "biochemical_minus_cell_based": 0.45
+  },
+  "reference_compounds": {}
+}

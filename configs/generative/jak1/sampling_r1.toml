@@ -1,0 +1,14 @@
+run_type = "sampling"
+device = "cpu"
+
+[parameters]
+model_file = "${REPO}/external/REINVENT4/priors/libinvent.prior"
+smiles_file = "scaffolds.smi"
+output_file = "sampled_r1.csv"
+num_smiles = 10000
+unique_molecules = true
+randomize_smiles = true
+
+# NOTE: ${REPO} placeholders must be substituted for the repository root before use;
+# see configs/generative/jak1/README.md. The committed form is deliberately
+# path-independent so it does not encode one machine's layout.

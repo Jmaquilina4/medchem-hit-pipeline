@@ -1,0 +1,48 @@
+This project is licensed under the MIT License (see LICENSE).
+
+THIRD-PARTY SOFTWARE
+Not vendored here, and split by whether the documented setup actually installs it: naming a dependency
+is not the same as depending on it, and several below are named only because the code defines adapters
+against their interfaces.
+
+  INSTALLED by `uv sync` and used to produce the frozen results:
+    RDKit                  BSD-3-Clause          https://github.com/rdkit/rdkit
+    scikit-learn / XGBoost / pandas / NumPy / SciPy  BSD-3-Clause
+
+  INSTALLED by `uv sync --extra docking`, used for structure preparation only:
+    meeko / pdb2pqr / gemmi  see each project
+
+  NOT INSTALLED and NOT USED for any frozen result. Named because the code defines adapters against
+  their interfaces; those adapters are explicit stubs that raise, and running them needs external
+  execution this repository does not provide:
+    AutoDock Vina 1.2.7    Apache-2.0            https://github.com/ccsb-scripps/AutoDock-Vina
+    Boltz-2                MIT                   https://github.com/jwohlwend/boltz
+    REINVENT 4             Apache-2.0            https://github.com/MolecularAI/REINVENT4
+
+THIRD-PARTY DATA
+  ChEMBL (release 34)    CC BY-SA 3.0          https://www.ebi.ac.uk/chembl/
+      REDISTRIBUTED HERE, under CC BY-SA 3.0, which permits it with attribution and share-alike:
+        * data/frozen_snapshots/*.csv.gz  -- the raw records the frozen results were computed from,
+          unmodified subsets, with SHA256SUMS and full attribution in that directory's README.
+        * provenance/*/run_manifest.json and composition.json -- ChEMBL-DERIVED aggregates (assay
+          identifiers, counts, medians). Same licence, same share-alike term.
+      These files are NOT covered by the code licence above. Anyone redistributing them further must
+      preserve this notice and the share-alike term. Curated intermediates are still regenerated
+      rather than shipped.
+  ZINC22                 free for use with attribution   https://cartblanche22.docking.org/
+  RCSB PDB (3EYG)        public domain (CC0)   https://www.rcsb.org/
+  UniProt (P23458)       CC BY 4.0             https://www.uniprot.org/
+
+MODEL WEIGHTS
+  Boltz-2 checkpoints    MIT, via HuggingFace boltz-community/boltz-2
+  REINVENT 4 priors      Apache-2.0, via Zenodo record 15641296
+
+Structural and sequence data for the second target
+--------------------------------------------------
+BRD4 structures are from the RCSB Protein Data Bank, used under its terms of use
+(https://www.rcsb.org/pages/usage-policy). Entries referenced: 4J3I (BRD4 BD1 with apabetalone /
+RVX-208, 1.24 A) and 3MXF (BRD4 BD1 with (+)-JQ1). Sequence identity for the target is UniProt
+O60885 (BRD4_HUMAN), used under CC BY 4.0 (https://www.uniprot.org/help/license).
+
+Bound-ligand chemistry for reference compounds is from ChEMBL, under CC BY-SA 3.0, as recorded for
+the primary bioactivity data above.

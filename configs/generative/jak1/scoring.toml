@@ -1,0 +1,202 @@
+# Multi-objective score for JAK1 fast-follower generation.
+#
+# Aggregation is geometric_mean deliberately: one failing component drives the whole score toward zero,
+# whereas an arithmetic mean lets a molecule buy a bad potency score with good physchem. That property
+# is the main structural defence against reward hacking.
+#
+# DESIGN NOTES on the two components that are not conventional:
+#
+#   qsar_pic50 is a FLOOR, not a target (steep sigmoid, knee 7.0). Measured on this project's data the
+#   RF's highest predictions land where it has least support -- prediction correlates with sim_to_train
+#   at Spearman -0.48, MAE in the operating band is 1.28 log units, and an RF cannot extrapolate beyond
+#   training values. Maximising it walks uphill into the model's blind spot. We only ask "plausibly
+#   active"; nothing is gained above the knee.
+#
+#   sim_to_train is a BAND (double_sigmoid 0.35-0.55), not a floor. A conventional applicability-domain
+#   penalty rewards being IN domain, which for a fast-follower rewards being derivative. Too far and
+#   predictions are fantasy; too close and there is no novelty. The useful place is the EDGE of the
+#   domain. Round-1 sampling already lands at median 0.420, so this holds a position rather than
+#   forcing a move.
+#
+# SYNTHESISABILITY IS DELIBERATELY ABSENT from the reward. SAScore is a 2009 fragment-frequency
+# heuristic, so it penalises unusual-but-makeable chemistry -- exactly what a fast-follower wants. It is
+# computed as a reported annotation during analysis instead, so it informs triage without steering
+# generation.
+
+run_type = "scoring"
+device = "cpu"
+json_out_config = "_scoring.json"
+
+[parameters]
+smiles_file = "score_input.smi"
+output_csv = "scored_r1.csv"
+
+[scoring]
+type = "geometric_mean"
+
+# ---------------------------------------------------------------------------------------------------
+# Our own models, via one subprocess. Everything else below is a native component running in microseconds;
+# this exists only for signals REINVENT cannot supply.
+# ---------------------------------------------------------------------------------------------------
+[[scoring.component]]
+[scoring.component.ExternalProcess]
+
+[[scoring.component.ExternalProcess.endpoint]]
+name = "QSAR potency floor"
+weight = 3
+params.executable = "${REPO}/.venv/bin/python"
+params.args = "${REPO}/scripts/reinvent_oracle.py --config ${REPO}/configs/jak1.yaml"
+params.property = "qsar_pic50"
+transform.type = "sigmoid"
+transform.high = 8.0
+transform.low = 6.5
+transform.k = 0.8
+
+[[scoring.component.ExternalProcess.endpoint]]
+name = "Applicability-domain band (edge of domain, not inside it)"
+weight = 3
+params.executable = "${REPO}/.venv/bin/python"
+params.args = "${REPO}/scripts/reinvent_oracle.py --config ${REPO}/configs/jak1.yaml"
+params.property = "sim_to_train"
+transform.type = "double_sigmoid"
+transform.high = 0.55
+transform.low = 0.35
+transform.coef_div = 0.55
+transform.coef_si = 40.0
+transform.coef_se = 40.0
+
+[[scoring.component.ExternalProcess.endpoint]]
+name = "Known-reference similarity alert"
+weight = 2
+params.executable = "${REPO}/.venv/bin/python"
+params.args = "${REPO}/scripts/reinvent_oracle.py --config ${REPO}/configs/jak1.yaml"
+params.property = "sim_to_known_reference"
+transform.type = "reverse_sigmoid"
+transform.high = 0.60
+transform.low = 0.30
+transform.k = 0.5
+
+# ---------------------------------------------------------------------------------------------------
+# Shape / flatness. The measured deficiency: the docking cascade drifted to Fsp3 0.16-0.23 against
+# 0.47-0.57 for the approved drugs, because docking rewards buried aromatic surface. Weighted heavily
+# because the unconditioned prior does NOT fix this on its own.
+# ---------------------------------------------------------------------------------------------------
+[[scoring.component]]
+[scoring.component.Csp3]
+[[scoring.component.Csp3.endpoint]]
+name = "Fraction sp3 carbon (3-dimensionality)"
+weight = 3
+transform.type = "sigmoid"
+transform.high = 0.55
+transform.low = 0.25
+transform.k = 0.5
+
+[[scoring.component]]
+[scoring.component.NumAromaticRings]
+[[scoring.component.NumAromaticRings.endpoint]]
+name = "Aromatic ring count (flatness from another angle)"
+weight = 1
+transform.type = "step"
+transform.high = 3
+transform.low = 0
+
+# ---------------------------------------------------------------------------------------------------
+# Lead-like property space. Bands, not maxima -- these are constraints we want satisfied, not optimised.
+# ---------------------------------------------------------------------------------------------------
+[[scoring.component]]
+[scoring.component.MolecularWeight]
+[[scoring.component.MolecularWeight.endpoint]]
+name = "Molecular weight"
+weight = 2
+transform.type = "double_sigmoid"
+transform.high = 450.0
+transform.low = 300.0
+transform.coef_div = 450.0
+transform.coef_si = 20.0
+transform.coef_se = 20.0
+
+[[scoring.component]]
+[scoring.component.SlogP]
+[[scoring.component.SlogP.endpoint]]
+name = "cLogP"
+weight = 2
+transform.type = "double_sigmoid"
+transform.high = 4.0
+transform.low = 1.0
+transform.coef_div = 4.0
+transform.coef_si = 20.0
+transform.coef_se = 20.0
+
+[[scoring.component]]
+[scoring.component.TPSA]
+[[scoring.component.TPSA.endpoint]]
+name = "TPSA"
+weight = 1
+transform.type = "double_sigmoid"
+transform.high = 120.0
+transform.low = 40.0
+transform.coef_div = 120.0
+transform.coef_si = 20.0
+transform.coef_se = 20.0
+
+[[scoring.component]]
+[scoring.component.QED]
+[[scoring.component.QED.endpoint]]
+name = "QED"
+weight = 1
+transform.type = "sigmoid"
+transform.high = 0.85
+transform.low = 0.45
+transform.k = 0.5
+
+[[scoring.component]]
+[scoring.component.NumRotBond]
+[[scoring.component.NumRotBond.endpoint]]
+name = "Rotatable bonds"
+weight = 1
+transform.type = "step"
+transform.high = 6
+transform.low = 0
+
+[[scoring.component]]
+[scoring.component.HBondDonors]
+[[scoring.component.HBondDonors.endpoint]]
+name = "H-bond donors"
+weight = 1
+transform.type = "step"
+transform.high = 3
+transform.low = 0
+
+# ---------------------------------------------------------------------------------------------------
+# Multiplicative penalties. These are applied after aggregation, so they are hard vetoes rather than
+# tradeable components.
+# ---------------------------------------------------------------------------------------------------
+[[scoring.component]]
+[scoring.component.custom_alerts]
+[[scoring.component.custom_alerts.endpoint]]
+name = "Structural alerts"
+params.smarts = [
+    "[*;r8]", "[*;r9]", "[*;r10]",             # macrocycles
+    "[#8][#8]", "[#16][#16]",                  # peroxides, disulfides
+    "[#7;!n][#7;!n]",                          # hydrazines
+    "[#6;!c][#7;!n]=[#7;!n]",                  # diazo
+    "[#16][#6](=[#16])",                       # dithiocarbonyl
+    "[#7]#[#6]-[#6]#[#7]",                     # malononitrile-like
+    "[#6]=[#6]-[#6]=[O]",                      # Michael acceptor (enone)
+]
+
+# The pyrrolo[2,3-d]pyrimidine hinge binder must survive. LibInvent guarantees this structurally
+# (324/324 in round 1), so this component should always score 1.0 -- it is here to make the invariant
+# explicit in the config rather than implicit in the tool's behaviour, and to catch it loudly if a
+# future scaffold edit breaks it.
+[[scoring.component]]
+[scoring.component.MatchingSubstructure]
+[[scoring.component.MatchingSubstructure.endpoint]]
+name = "Hinge binder retained"
+weight = 1
+params.smarts = ["c1ncnc2[nH]ccc12"]
+params.use_chirality = false
+
+# NOTE: ${REPO} placeholders must be substituted for the repository root before use;
+# see configs/generative/jak1/README.md. The committed form is deliberately
+# path-independent so it does not encode one machine's layout.

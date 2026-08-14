@@ -1,0 +1,684 @@
+{
+  "what_this_is": "a machine-readable record of how the frozen results were produced and what they are. Derived from the published provenance records, the locked environment and the digest tool; never hand-edited. scripts/check_reproduction_report.py verifies it in CI.",
+  "how_to_reproduce": {
+    "install": "uv sync --extra science --extra dev --extra docking --frozen",
+    "stages": [
+      "data_pull",
+      "curate",
+      "featurize",
+      "qsar",
+      "selectivity",
+      "evaluate"
+    ],
+    "stages_note": "these six produce every published metric. `receptor` is excluded deliberately: it fetches a structure from the RCSB PDB, so including it would make this command require network. With MEDCHEM_FROZEN_SNAPSHOT set, the six stages contact no network -- note that WITHOUT it, data_pull queries ChEMBL and so needs network itself",
+    "per_panel_commands": {
+      "jak1": "MEDCHEM_FROZEN_SNAPSHOT=data/frozen_snapshots uv run medchem run -p discovery -c configs/jak1.yaml --force --workdir <fresh-empty-dir>/jak1 --stage data_pull --stage curate --stage featurize --stage qsar --stage selectivity --stage evaluate",
+      "jak1_sensitivity": "MEDCHEM_FROZEN_SNAPSHOT=data/frozen_snapshots uv run medchem run -p discovery -c configs/jak1_sensitivity.yaml --force --workdir <fresh-empty-dir>/jak1_sensitivity --stage data_pull --stage curate --stage featurize --stage qsar --stage selectivity --stage evaluate",
+      "brd4": "MEDCHEM_FROZEN_SNAPSHOT=data/frozen_snapshots uv run medchem run -p discovery -c configs/brd4.yaml --force --workdir <fresh-empty-dir>/brd4 --stage data_pull --stage curate --stage featurize --stage qsar --stage selectivity --stage evaluate",
+      "brd4_sensitivity": "MEDCHEM_FROZEN_SNAPSHOT=data/frozen_snapshots uv run medchem run -p discovery -c configs/brd4_sensitivity.yaml --force --workdir <fresh-empty-dir>/brd4_sensitivity --stage data_pull --stage curate --stage featurize --stage qsar --stage selectivity --stage evaluate"
+    },
+    "compare_against": "provenance/<panel>/eval_report.json and selectivity_metrics.json",
+    "why_force_and_workdir": "--force ignores the content-addressed cache and --workdir sends output to a fresh directory. Without both, the run resolves cached artifacts and demonstrates nothing about reproducibility: it would compare a file to itself"
+  },
+  "environment": {
+    "python_pinned": "3.14.6",
+    "python_running_now": "3.14.6",
+    "dependency_lock": "uv.lock",
+    "dependency_lock_sha256": "e29c58e7e7a75206571aa9ba813f22cebcb5906511b905ce3cce9affd5675f2e",
+    "extras": [
+      "science",
+      "dev",
+      "docking"
+    ]
+  },
+  "source_identity": {
+    "scientific_source_digest": "e17ad66dc8c3f4dac3e651a6b04430475b1c215e45fec8823b376e3ccf234158",
+    "modules_hashed": 37,
+    "entry_modules": [
+      "medchem.stages",
+      "medchem.config",
+      "medchem.pipeline.runner",
+      "medchem.pipeline.cache"
+    ],
+    "frozen_analysis_digest": "e17ad66dc8c3f4dac3e651a6b04430475b1c215e45fec8823b376e3ccf234158",
+    "declared_source_delta": [],
+    "interpreter_scope": "the digest is comparable only within one CPython minor version, because the AST normalisation it relies on differs between them"
+  },
+  "tolerances": {
+    "default": {
+      "value": 1e-12,
+      "applies_to": "every metric this documentation reports",
+      "why": "float64 rounding varies with BLAS kernel, thread count and CPU. This bound is far above the differences MEASURED on a same-machine cache-free re-run (see cache_free_reproduction below), and its remaining headroom is for cross-machine variation that has NOT been measured here: no independent reproduction on other hardware has been performed. An earlier version of this field said 'comfortably above cross-machine reports', which implied outside evidence that does not exist"
+    },
+    "rank_statistics": {
+      "value": 1e-05,
+      "applies_to": [
+        "roc_auc",
+        "pr_auc",
+        "pr_auc_lift_over_baseline"
+      ],
+      "in_files": [
+        "selectivity_metrics.json"
+      ],
+      "why": "these are RANK statistics computed on RandomForestRegressor(n_jobs=-1) predictions. Scikit-learn accumulates each tree's contribution from a thread pool, so repeated predict() calls on one fitted model differ by up to ~1.3e-15 (exactly reproducible at n_jobs=1). A shift that small cannot move a continuous metric but can swap two near-tied predictions, and a rank statistic then moves by one discrete quantum. This bound is an OBSERVED upper bound with headroom, not a derived limit: the quantum's size depends on how many near-ties a dataset holds"
+    },
+    "decisions": {
+      "value": "exact",
+      "applies_to": [
+        "support verdicts",
+        "production_model.written",
+        "supported_comparators",
+        "basis_column",
+        "paired counts",
+        "support reasons"
+      ],
+      "why": "threshold comparisons and integer counts, whose margins are orders of magnitude wider. NOTE the scope: these are the decisions carried by the two COMPARED artifacts. Assay-level cohort exclusion reasons live in run_manifest.json, which is not compared, so they are not covered here -- an earlier version of this list said 'exclusion reasons' and implied they were"
+    }
+  },
+  "published_records": {
+    "jak1": {
+      "config": "configs/jak1.yaml",
+      "command": "MEDCHEM_FROZEN_SNAPSHOT=data/frozen_snapshots uv run medchem run -p discovery -c configs/jak1.yaml --force --workdir <fresh-empty-dir>/jak1 --stage data_pull --stage curate --stage featurize --stage qsar --stage selectivity --stage evaluate",
+      "cohort": {
+        "requested": "biochemical_explicit",
+        "as_run": "biochemical_explicit",
+        "spec_version": "1.2",
+        "primary_compounds": 6894
+      },
+      "single_clean_revision": true,
+      "metrics": {
+        "scaffold_cv_r2": 0.7596869528792374,
+        "temporal_r2": -0.36207440903423893,
+        "temporal_cutoff_year": 2022,
+        "train_label_source": "pre-cutoff median (era-split labels from curation)",
+        "y_scramble_r2": -0.17494110244945227,
+        "random_split_scaffold_overlap": 0.7599709934735316,
+        "temporal_split_scaffold_overlap": 0.06743421052631579
+      },
+      "decisions": {
+        "pairs_supported": {
+          "JAK1-JAK2": true,
+          "JAK1-JAK3": true,
+          "JAK1-TYK2": true
+        },
+        "n_supported": 3,
+        "n_pairs": 3,
+        "production_model_written": true,
+        "supported_comparators": [
+          "JAK2",
+          "JAK3",
+          "TYK2"
+        ],
+        "basis_column": "delta_min_vs_comparators"
+      },
+      "record_hashes": {
+        "composition.json": "3d02bfd2531ebf9f8ec5727622cd9a4c0901fe7eafb4f4e81f34cbadb1b229c4",
+        "eval_report.json": "d8ea14719c3f3db14d5d57c22f41d170ce860f3a85715521ac0fb883af82fb97",
+        "run_manifest.json": "d5d5befd79e5a56a97ed28587aa32ddd8756eca38122ee5eb7fcbe4a76df67ca",
+        "selectivity_metrics.json": "5ac31a3b152b5e473f369c49485338fcf57b16d9fad4f0685547ea7d87ef8cef",
+        "temporal_overlap.json": "fd9468dc2051d57156503664705f0d9760d4d7b97df13bc4f04010b3c790e550"
+      }
+    },
+    "jak1_sensitivity": {
+      "config": "configs/jak1_sensitivity.yaml",
+      "command": "MEDCHEM_FROZEN_SNAPSHOT=data/frozen_snapshots uv run medchem run -p discovery -c configs/jak1_sensitivity.yaml --force --workdir <fresh-empty-dir>/jak1_sensitivity --stage data_pull --stage curate --stage featurize --stage qsar --stage selectivity --stage evaluate",
+      "cohort": {
+        "requested": "target_associated",
+        "as_run": "target_associated",
+        "spec_version": "1.2",
+        "primary_compounds": 7912
+      },
+      "single_clean_revision": true,
+      "metrics": {
+        "scaffold_cv_r2": 0.7407256538832778,
+        "temporal_r2": -0.10181076430475411,
+        "temporal_cutoff_year": 2022,
+        "train_label_source": "pre-cutoff median (era-split labels from curation)",
+        "y_scramble_r2": -0.1290350560440896,
+        "random_split_scaffold_overlap": 0.7681617182564751,
+        "temporal_split_scaffold_overlap": 0.12094395280235988
+      },
+      "decisions": {
+        "pairs_supported": {
+          "JAK1-JAK2": true,
+          "JAK1-JAK3": true,
+          "JAK1-TYK2": true
+        },
+        "n_supported": 3,
+        "n_pairs": 3,
+        "production_model_written": true,
+        "supported_comparators": [
+          "JAK2",
+          "JAK3",
+          "TYK2"
+        ],
+        "basis_column": "delta_min_vs_comparators"
+      },
+      "record_hashes": {
+        "composition.json": "3d02bfd2531ebf9f8ec5727622cd9a4c0901fe7eafb4f4e81f34cbadb1b229c4",
+        "eval_report.json": "ef7d6c48ff2e1b96bba661add7bd43cd3f6f7804e0608573296445126c02e48c",
+        "run_manifest.json": "892b1794efcb957bee116e121146077033000e44af0b7e5671b8ae90be3eeb3c",
+        "selectivity_metrics.json": "61d6b4b6a37c29c0c8be52c739d75a049b23f87cee5ad36b504ecd843a55ac14",
+        "temporal_overlap.json": "95fd21fd90756a43acc0054b97335947a0154c01327d2004255e1352f4f6b833"
+      }
+    },
+    "brd4": {
+      "config": "configs/brd4.yaml",
+      "command": "MEDCHEM_FROZEN_SNAPSHOT=data/frozen_snapshots uv run medchem run -p discovery -c configs/brd4.yaml --force --workdir <fresh-empty-dir>/brd4 --stage data_pull --stage curate --stage featurize --stage qsar --stage selectivity --stage evaluate",
+      "cohort": {
+        "requested": "domain1_bd1_explicit_structured_binding",
+        "as_run": "domain1_bd1_explicit_structured_binding",
+        "spec_version": "1.2",
+        "primary_compounds": 2794
+      },
+      "single_clean_revision": true,
+      "metrics": {
+        "scaffold_cv_r2": 0.7282604713802937,
+        "temporal_r2": 0.01896047061716022,
+        "temporal_cutoff_year": 2022,
+        "train_label_source": "pre-cutoff median (era-split labels from curation)",
+        "y_scramble_r2": -0.12508285572992706,
+        "random_split_scaffold_overlap": 0.6601073345259392,
+        "temporal_split_scaffold_overlap": 0.050314465408805034
+      },
+      "decisions": {
+        "pairs_supported": {
+          "BRD4-BRD2": false,
+          "BRD4-BRD3": false,
+          "BRD4-BRDT": false
+        },
+        "n_supported": 0,
+        "n_pairs": 3,
+        "production_model_written": false,
+        "supported_comparators": [],
+        "basis_column": null
+      },
+      "record_hashes": {
+        "composition.json": "395fcd8f09ccceea5d2a28de820e2fa145daa48d5461d12f37b7438ec990f8aa",
+        "eval_report.json": "d4157424c3fd76477f65777c560b41fbc23d2e559882bd7b7698122f12535799",
+        "run_manifest.json": "37611b497dfeeb500916535184acff57abbb19f90c6c56047690cd62f9d731ca",
+        "selectivity_metrics.json": "0ed3d73a741afa6dfc5983c11e803bb0e9e2a103a9577b11bea386e0de248318",
+        "temporal_overlap.json": "a2383e2d8ab39c12cea535f957360197c1aff58b43adac86a2486b4b388c88ce"
+      }
+    },
+    "brd4_sensitivity": {
+      "config": "configs/brd4_sensitivity.yaml",
+      "command": "MEDCHEM_FROZEN_SNAPSHOT=data/frozen_snapshots uv run medchem run -p discovery -c configs/brd4_sensitivity.yaml --force --workdir <fresh-empty-dir>/brd4_sensitivity --stage data_pull --stage curate --stage featurize --stage qsar --stage selectivity --stage evaluate",
+      "cohort": {
+        "requested": "target_associated",
+        "as_run": "target_associated",
+        "spec_version": "1.2",
+        "primary_compounds": 7955
+      },
+      "single_clean_revision": true,
+      "metrics": {
+        "scaffold_cv_r2": 0.7523180826267586,
+        "temporal_r2": 0.12947930395995777,
+        "temporal_cutoff_year": 2022,
+        "train_label_source": "pre-cutoff median (era-split labels from curation)",
+        "y_scramble_r2": -0.07871516060621864,
+        "random_split_scaffold_overlap": 0.6983029541169076,
+        "temporal_split_scaffold_overlap": 0.09625
+      },
+      "decisions": {
+        "pairs_supported": {
+          "BRD4-BRD2": true,
+          "BRD4-BRD3": true,
+          "BRD4-BRDT": false
+        },
+        "n_supported": 2,
+        "n_pairs": 3,
+        "production_model_written": true,
+        "supported_comparators": [
+          "BRD2",
+          "BRD3"
+        ],
+        "basis_column": "delta_min_supported"
+      },
+      "record_hashes": {
+        "composition.json": "395fcd8f09ccceea5d2a28de820e2fa145daa48d5461d12f37b7438ec990f8aa",
+        "eval_report.json": "bb01168ec5c739df2d45c59716951242be255c467101b6e0b4a47006becfb8ca",
+        "run_manifest.json": "6ee932ac17b4956d582819657ee35702467bccc218fcf598cf832461a03e2bfb",
+        "selectivity_metrics.json": "c7c718750f79e8d82b3cec741d1dc4c1d2789a133360600d6df6288e17496532",
+        "temporal_overlap.json": "c01efb6d5c63f6aca8d9ab117ef9dcd265103f8c73a22de7dba2fae4f1eaf36b"
+      }
+    }
+  },
+  "cache_free_reproduction": {
+    "what_this_is": "MEASURED evidence: the four panels re-run cache-free and compared against an immutable reference captured before any source edit. Not re-derivable from the published records.",
+    "performed": true,
+    "label": "final bounded repair: four panels re-run cache-free, compared against the immutable pre-fix reference at scientific digest 16d9e83f",
+    "source_digest_at_run": "e17ad66dc8c3f4dac3e651a6b04430475b1c215e45fec8823b376e3ccf234158",
+    "reference": {
+      "artifact_count": 8,
+      "note": "an immutable copy held outside the repository, so publication cannot overwrite it"
+    },
+    "environment": {
+      "python": "3.14.6",
+      "platform": "macOS-26.5.2-arm64-arm-64bit-Mach-O",
+      "uv_lock_sha256": "e29c58e7e7a75206571aa9ba813f22cebcb5906511b905ce3cce9affd5675f2e",
+      "extras": [
+        "science",
+        "dev",
+        "docking"
+      ],
+      "frozen_snapshot_env": "MEDCHEM_FROZEN_SNAPSHOT=data/frozen_snapshots"
+    },
+    "method": {
+      "stages": [
+        "data_pull",
+        "curate",
+        "featurize",
+        "qsar",
+        "selectivity",
+        "evaluate"
+      ],
+      "cache_free_evidence": {
+        "measured": true,
+        "source": "the per-panel run logs, hashed below; their paths are deliberately not recorded",
+        "expected_stage_set": [
+          "curate",
+          "data_pull",
+          "evaluate",
+          "featurize",
+          "qsar",
+          "selectivity"
+        ],
+        "per_panel": {
+          "jak1": {
+            "stages_ran": [
+              "curate",
+              "data_pull",
+              "evaluate",
+              "featurize",
+              "qsar",
+              "selectivity"
+            ],
+            "stages_from_cache": [],
+            "n_ran": 6,
+            "n_from_cache": 0,
+            "exact_expected_stage_set": true,
+            "process_exit_code": 0,
+            "log_sha256": "77e9bbdd72cce552b7476fa08142d296cb0ef52579458f732c7b5780e1c853f1"
+          },
+          "jak1_sensitivity": {
+            "stages_ran": [
+              "curate",
+              "data_pull",
+              "evaluate",
+              "featurize",
+              "qsar",
+              "selectivity"
+            ],
+            "stages_from_cache": [],
+            "n_ran": 6,
+            "n_from_cache": 0,
+            "exact_expected_stage_set": true,
+            "process_exit_code": 0,
+            "log_sha256": "6c022ef78a3a97c754a8eb9c9600e522381e53ea8d0c1071c07ca1049d58b84a"
+          },
+          "brd4": {
+            "stages_ran": [
+              "curate",
+              "data_pull",
+              "evaluate",
+              "featurize",
+              "qsar",
+              "selectivity"
+            ],
+            "stages_from_cache": [],
+            "n_ran": 6,
+            "n_from_cache": 0,
+            "exact_expected_stage_set": true,
+            "process_exit_code": 0,
+            "log_sha256": "7b161772fc9e142f092d10927a1e812afd6430f0b03efa5a9cf44032e4ffd340"
+          },
+          "brd4_sensitivity": {
+            "stages_ran": [
+              "curate",
+              "data_pull",
+              "evaluate",
+              "featurize",
+              "qsar",
+              "selectivity"
+            ],
+            "stages_from_cache": [],
+            "n_ran": 6,
+            "n_from_cache": 0,
+            "exact_expected_stage_set": true,
+            "process_exit_code": 0,
+            "log_sha256": "22b31cd4c7a465db8d5af921f5ba3001d44a3169b9a890bde5dd63836ec7d37d"
+          }
+        },
+        "total_stages_ran": 24,
+        "total_stages_from_cache": 0,
+        "all_panels_exited_zero": true,
+        "all_panels_exact_stage_set": true
+      },
+      "invocation": "--force, into per-panel run directories that did not previously exist",
+      "why": "a fresh workdir alone is NOT sufficient: a shared content cache lives outside it, so a run without --force resolves stages from that cache, prints [cache] and writes nothing",
+      "compared": [
+        "eval_report.json",
+        "selectivity_metrics.json"
+      ],
+      "comparison": "union of keys; missing, extra and non-finite values are findings",
+      "ignored_leaves": [
+        "artifact_dir",
+        "cache_key",
+        "run_finished_utc",
+        "run_started_utc",
+        "wall_seconds"
+      ],
+      "tolerances": {
+        "continuous": 1e-12,
+        "rank_statistics": 1e-05,
+        "rank_keys": [
+          "pr_auc",
+          "pr_auc_lift_over_baseline",
+          "roc_auc"
+        ],
+        "decisions": "exact"
+      }
+    },
+    "result": {
+      "all_within_tolerance": true,
+      "artifacts_compared": 8,
+      "worst_continuous_delta": 1.7763568394002505e-15,
+      "worst_rank_delta": 4.7241031886358087e-07
+    },
+    "published_verified": true,
+    "previous_runs": [
+      {
+        "source_digest_at_run": "941cd7acfd9b3e6851c2b04a18f88d474d2de61db7a1a20ceaf9abf88f3c78b8",
+        "label": "final closeout: four panels re-run cache-free at this source digest (digest 941cd7ac)",
+        "result": {
+          "all_within_tolerance": true,
+          "artifacts_compared": 8,
+          "worst_continuous_delta": 2.4424906541753444e-15,
+          "worst_rank_delta": 4.7241031797540245e-07
+        }
+      },
+      {
+        "source_digest_at_run": "299b11c957c28d279e9769f044762bd2c6254de0c497e6ba48404fa48bc0c0a0",
+        "label": "closeout after adversarial review: four panels re-run cache-free at this source digest (digest 299b11c9)",
+        "result": {
+          "all_within_tolerance": true,
+          "artifacts_compared": 8,
+          "worst_continuous_delta": 2.4424906541753444e-15,
+          "worst_rank_delta": 1.5624517053502984e-06
+        }
+      },
+      {
+        "source_digest_at_run": "16d9e83fc2c7a5176fc67c87c22fb2cf08b6c6344fdc93ce90c3de0fafecb3c3",
+        "label": "final correction round: four panels re-run cache-free at digest 16d9e83f, compared against the pre-fix reference",
+        "result": {
+          "all_within_tolerance": true,
+          "artifacts_compared": 8,
+          "worst_continuous_delta": 1.5543122344752192e-15,
+          "worst_rank_delta": 1.5624517053502984e-06
+        }
+      }
+    ],
+    "panels": {
+      "jak1": {
+        "command": "MEDCHEM_FROZEN_SNAPSHOT=data/frozen_snapshots uv run medchem run -p discovery -c configs/jak1.yaml --force --workdir <fresh-empty-dir>/jak1 --stage data_pull --stage curate --stage featurize --stage qsar --stage selectivity --stage evaluate",
+        "artifacts": {
+          "eval_report.json": {
+            "reference_sha256": "07c4e53f5922d1dcd067f2eda7c54b9708277a71c5f74cfc86a304696db6381f",
+            "rerun_sha256": "d8ea14719c3f3db14d5d57c22f41d170ce860f3a85715521ac0fb883af82fb97",
+            "bytes_identical": false,
+            "distinct_files": true,
+            "keys_reference": 62,
+            "keys_rerun": 62,
+            "keys_compared": 62,
+            "worst_continuous_delta": 4.440892098500626e-16,
+            "worst_rank_delta": 0.0,
+            "findings": [],
+            "reproduced": true,
+            "published_sha256": "d8ea14719c3f3db14d5d57c22f41d170ce860f3a85715521ac0fb883af82fb97",
+            "published_equals_rerun": true
+          },
+          "selectivity_metrics.json": {
+            "reference_sha256": "5a771c51a430b6da30ac399f5e83c0f17e362d868d0e4493f5078262973e2fdf",
+            "rerun_sha256": "5ac31a3b152b5e473f369c49485338fcf57b16d9fad4f0685547ea7d87ef8cef",
+            "bytes_identical": false,
+            "distinct_files": true,
+            "keys_reference": 88,
+            "keys_rerun": 88,
+            "keys_compared": 88,
+            "worst_continuous_delta": 5.551115123125783e-17,
+            "worst_rank_delta": 4.7241031886358087e-07,
+            "findings": [],
+            "reproduced": true,
+            "published_sha256": "5ac31a3b152b5e473f369c49485338fcf57b16d9fad4f0685547ea7d87ef8cef",
+            "published_equals_rerun": true
+          }
+        },
+        "decisions": {
+          "identical": true,
+          "reference": {
+            "pairs_supported": {
+              "JAK1-JAK2": true,
+              "JAK1-JAK3": true,
+              "JAK1-TYK2": true
+            },
+            "support_reasons": {
+              "JAK1-JAK2": [],
+              "JAK1-JAK3": [],
+              "JAK1-TYK2": []
+            },
+            "n_paired": {
+              "JAK1-JAK2": 5805,
+              "JAK1-JAK3": 2973,
+              "JAK1-TYK2": 2482
+            },
+            "production_model_written": true,
+            "supported_comparators": [
+              "JAK2",
+              "JAK3",
+              "TYK2"
+            ],
+            "basis_column": "delta_min_vs_comparators"
+          },
+          "rerun": "identical to reference"
+        }
+      },
+      "jak1_sensitivity": {
+        "command": "MEDCHEM_FROZEN_SNAPSHOT=data/frozen_snapshots uv run medchem run -p discovery -c configs/jak1_sensitivity.yaml --force --workdir <fresh-empty-dir>/jak1_sensitivity --stage data_pull --stage curate --stage featurize --stage qsar --stage selectivity --stage evaluate",
+        "artifacts": {
+          "eval_report.json": {
+            "reference_sha256": "11ccaded0732c66e6e8bc524e3393bbd1acec80240d5323d5bf56d9912f9220b",
+            "rerun_sha256": "ef7d6c48ff2e1b96bba661add7bd43cd3f6f7804e0608573296445126c02e48c",
+            "bytes_identical": false,
+            "distinct_files": true,
+            "keys_reference": 62,
+            "keys_rerun": 62,
+            "keys_compared": 62,
+            "worst_continuous_delta": 5.551115123125783e-17,
+            "worst_rank_delta": 0.0,
+            "findings": [],
+            "reproduced": true,
+            "published_sha256": "ef7d6c48ff2e1b96bba661add7bd43cd3f6f7804e0608573296445126c02e48c",
+            "published_equals_rerun": true
+          },
+          "selectivity_metrics.json": {
+            "reference_sha256": "54c48bf16c18b3635954d9bf886c4186298b4674eb0c085253e0d2d94bd7be5f",
+            "rerun_sha256": "61d6b4b6a37c29c0c8be52c739d75a049b23f87cee5ad36b504ecd843a55ac14",
+            "bytes_identical": false,
+            "distinct_files": true,
+            "keys_reference": 88,
+            "keys_rerun": 88,
+            "keys_compared": 88,
+            "worst_continuous_delta": 1.1102230246251565e-16,
+            "worst_rank_delta": 3.0370221137943076e-07,
+            "findings": [],
+            "reproduced": true,
+            "published_sha256": "61d6b4b6a37c29c0c8be52c739d75a049b23f87cee5ad36b504ecd843a55ac14",
+            "published_equals_rerun": true
+          }
+        },
+        "decisions": {
+          "identical": true,
+          "reference": {
+            "pairs_supported": {
+              "JAK1-JAK2": true,
+              "JAK1-JAK3": true,
+              "JAK1-TYK2": true
+            },
+            "support_reasons": {
+              "JAK1-JAK2": [],
+              "JAK1-JAK3": [],
+              "JAK1-TYK2": []
+            },
+            "n_paired": {
+              "JAK1-JAK2": 6557,
+              "JAK1-JAK3": 3438,
+              "JAK1-TYK2": 2824
+            },
+            "production_model_written": true,
+            "supported_comparators": [
+              "JAK2",
+              "JAK3",
+              "TYK2"
+            ],
+            "basis_column": "delta_min_vs_comparators"
+          },
+          "rerun": "identical to reference"
+        }
+      },
+      "brd4": {
+        "command": "MEDCHEM_FROZEN_SNAPSHOT=data/frozen_snapshots uv run medchem run -p discovery -c configs/brd4.yaml --force --workdir <fresh-empty-dir>/brd4 --stage data_pull --stage curate --stage featurize --stage qsar --stage selectivity --stage evaluate",
+        "artifacts": {
+          "eval_report.json": {
+            "reference_sha256": "210aa7c9e13f221da427e733f59e30d61ba860f5fa26d3c247da41a9eed14dde",
+            "rerun_sha256": "d4157424c3fd76477f65777c560b41fbc23d2e559882bd7b7698122f12535799",
+            "bytes_identical": false,
+            "distinct_files": true,
+            "keys_reference": 62,
+            "keys_rerun": 62,
+            "keys_compared": 62,
+            "worst_continuous_delta": 1.1102230246251565e-16,
+            "worst_rank_delta": 0.0,
+            "findings": [],
+            "reproduced": true,
+            "published_sha256": "d4157424c3fd76477f65777c560b41fbc23d2e559882bd7b7698122f12535799",
+            "published_equals_rerun": true
+          },
+          "selectivity_metrics.json": {
+            "reference_sha256": "79317c75ebdb0acbbbc79e4ce9aec672d34e92bf1d3910da3fc90417d5c05131",
+            "rerun_sha256": "0ed3d73a741afa6dfc5983c11e803bb0e9e2a103a9577b11bea386e0de248318",
+            "bytes_identical": false,
+            "distinct_files": true,
+            "keys_reference": 87,
+            "keys_rerun": 87,
+            "keys_compared": 87,
+            "worst_continuous_delta": 1.7763568394002505e-15,
+            "worst_rank_delta": 0.0,
+            "findings": [],
+            "reproduced": true,
+            "published_sha256": "0ed3d73a741afa6dfc5983c11e803bb0e9e2a103a9577b11bea386e0de248318",
+            "published_equals_rerun": true
+          }
+        },
+        "decisions": {
+          "identical": true,
+          "reference": {
+            "pairs_supported": {
+              "BRD4-BRD2": false,
+              "BRD4-BRD3": false,
+              "BRD4-BRDT": false
+            },
+            "support_reasons": {
+              "BRD4-BRD2": [
+                "R\u00b2 95% CI [-0.075, 0.277] spans zero \u2014 not distinguishable from noise"
+              ],
+              "BRD4-BRD3": [
+                "R\u00b2 95% CI [-0.141, 0.269] spans zero \u2014 not distinguishable from noise"
+              ],
+              "BRD4-BRDT": [
+                "R\u00b2 95% CI [-0.210, 0.200] spans zero \u2014 not distinguishable from noise"
+              ]
+            },
+            "n_paired": {
+              "BRD4-BRD2": 80,
+              "BRD4-BRD3": 56,
+              "BRD4-BRDT": 54
+            },
+            "production_model_written": false,
+            "supported_comparators": [],
+            "basis_column": null
+          },
+          "rerun": "identical to reference"
+        }
+      },
+      "brd4_sensitivity": {
+        "command": "MEDCHEM_FROZEN_SNAPSHOT=data/frozen_snapshots uv run medchem run -p discovery -c configs/brd4_sensitivity.yaml --force --workdir <fresh-empty-dir>/brd4_sensitivity --stage data_pull --stage curate --stage featurize --stage qsar --stage selectivity --stage evaluate",
+        "artifacts": {
+          "eval_report.json": {
+            "reference_sha256": "7c30425e863401d25f2a1a1c36e83facc42b7c77ea9a77c06003b273a5a7c26c",
+            "rerun_sha256": "bb01168ec5c739df2d45c59716951242be255c467101b6e0b4a47006becfb8ca",
+            "bytes_identical": false,
+            "distinct_files": true,
+            "keys_reference": 62,
+            "keys_rerun": 62,
+            "keys_compared": 62,
+            "worst_continuous_delta": 2.220446049250313e-16,
+            "worst_rank_delta": 0.0,
+            "findings": [],
+            "reproduced": true,
+            "published_sha256": "bb01168ec5c739df2d45c59716951242be255c467101b6e0b4a47006becfb8ca",
+            "published_equals_rerun": true
+          },
+          "selectivity_metrics.json": {
+            "reference_sha256": "2866c1dbb486864bad340ff9171a19ac3016944111f5e7afa9b64afe0c7e8672",
+            "rerun_sha256": "c7c718750f79e8d82b3cec741d1dc4c1d2789a133360600d6df6288e17496532",
+            "bytes_identical": false,
+            "distinct_files": true,
+            "keys_reference": 90,
+            "keys_rerun": 90,
+            "keys_compared": 90,
+            "worst_continuous_delta": 4.3021142204224816e-16,
+            "worst_rank_delta": 0.0,
+            "findings": [],
+            "reproduced": true,
+            "published_sha256": "c7c718750f79e8d82b3cec741d1dc4c1d2789a133360600d6df6288e17496532",
+            "published_equals_rerun": true
+          }
+        },
+        "decisions": {
+          "identical": true,
+          "reference": {
+            "pairs_supported": {
+              "BRD4-BRD2": true,
+              "BRD4-BRD3": true,
+              "BRD4-BRDT": false
+            },
+            "support_reasons": {
+              "BRD4-BRD2": [
+                "positive class is 2.2% (17/776) \u2014 classification metrics are unstable and PR-AUC must be read against this baseline, not against another target's PR-AUC"
+              ],
+              "BRD4-BRD3": [
+                "positive class is 1.4% (11/803) \u2014 classification metrics are unstable and PR-AUC must be read against this baseline, not against another target's PR-AUC"
+              ],
+              "BRD4-BRDT": [
+                "R\u00b2 95% CI [-0.114, 0.123] spans zero \u2014 not distinguishable from noise"
+              ]
+            },
+            "n_paired": {
+              "BRD4-BRD2": 776,
+              "BRD4-BRD3": 803,
+              "BRD4-BRDT": 177
+            },
+            "production_model_written": true,
+            "supported_comparators": [
+              "BRD2",
+              "BRD3"
+            ],
+            "basis_column": "delta_min_supported"
+          },
+          "rerun": "identical to reference"
+        }
+      }
+    }
+  }
+}

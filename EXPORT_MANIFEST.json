@@ -1,0 +1,9 @@
+{
+  "what_this_is": "inventory of the sanitized public export, written at export time",
+  "selected_source_files": 179,
+  "final_tracked_files": 180,
+  "final_tracked_files_note": "the selected source files plus this manifest, which is generated into the export rather than copied into it",
+  "dropped_files": 104,
+  "path_denylist_entries": 20,
+  "note": "the export is a TREE-LEVEL allowlist. Whole directories are retained (source, tests, provenance, the frozen snapshots and figures, the ADRs, CI), so a new file inside one of them is published at the next export without a further decision; individual allowlisting governs single files, scripts, and any directory not already retained. The guarantee is therefore that no new top-level area is published unreviewed, not that no new file is. The selecting tool is not shipped -- it necessarily enumerates what was withheld -- so what this manifest offers instead is counts."
+}

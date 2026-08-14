@@ -1,0 +1,5 @@
+raw_dir: data/raw
+processed_dir: data/processed/medchem_ic50
+reports_dir: reports
+results_dir: results
+

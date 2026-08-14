@@ -1,0 +1,196 @@
+# Flagship case study. The stage graph is registered under the generic 'discovery' pipeline;
+# this file supplies the target, so a second target is a sibling config, not a new graph.
+# `-p jak1` still resolves to 'discovery' via PIPELINE_ALIASES.
+# JAK1 selectivity pipeline — target #1.
+#
+# Pointing the pipeline at a NEW target is a copy of this file with values
+# changed — never a code edit. That is the reusability thesis, so every
+# stage reads its parameters from here (stages register in src/medchem/stages/__init__.py).
+# Every section read by a stage is STRICT -- an unknown key there is a startup error, not a silent
+# default -- and so is the ROOT: a misspelled section name is rejected rather than leaving the real
+# section on its defaults. The only permissive area left is the CONTENTS of the four vls campaign
+# sections (tiers, budget_allocation, validation, prospective), which out-of-package scripts consume.
+
+target: jak1
+seed: 42
+
+data:
+  chembl_release: "34"            # release recorded per run; the pull is reproducible
+  targets:                        # name -> ChEMBL target id (verify at pull time)
+    JAK1: CHEMBL2835
+    JAK2: CHEMBL2971
+    JAK3: CHEMBL2148
+    TYK2: CHEMBL3553
+  primary: JAK1
+  # FROZEN COHORT (medchem.cohorts, spec 1.2). Both axes are required, because fixing one and
+  # pooling the other only trades one ambiguity for another:
+  #   domain  — one phase-3 BET reference reads 5.85 on BD1 and 6.88 on BD2 (1.03 log units)
+  #   format  — JAK1 biochemical and cell-based medians sit 0.45 log units apart
+  # Comparators carry the SAME cohort: a domain-matched primary against pooled comparators would
+  # preserve exactly the ambiguity being removed.
+  activity_types: [IC50]          # IC50-only, enforced per-row in curation
+  standardize_units_to: pIC50     # units converted from standard_units (never trusted from a label)
+  dedup: median                   # ONE median over all measurements per structure
+  # Full pIC50 range, all assay types — deliberately NO pchembl_min / assay_type gate
+  # (QSAR coverage). ChEMBL-flagged-invalid + inactive rows are dropped; the drug-like
+  # filter is applied downstream at candidate triage, not to the training set.
+
+
+curation:
+  # HOW rows become labels. Separate from `data` so a cohort change does not
+  # re-fetch the snapshot: headline and sensitivity must share identical raw bytes.
+  assay_cohort:
+    name: biochemical_explicit
+    label: "JAK1 biochemical-explicit — HEADLINE"
+  temporal_cutoff_year: 2022
+
+features:
+  fingerprint: ecfp4              # Morgan (ECFP4)
+  radius: 2
+  n_bits: 2048
+  use_chirality: true             # ON — stereochemistry matters for these series
+  descriptors: [MolWt, MolLogP, TPSA, NumHDonors, NumHAcceptors, QED, NumRotatableBonds, NumAromaticRings, FractionCSP3]
+
+model:
+  potency:
+    # NO `algorithms` / `calibration` keys: RF and XGBoost BOTH always train and the conformal
+    # interval is always computed. They were listed here and read by nothing, so setting
+    # `algorithms: [random_forest]` would have trained XGBoost anyway -- a knob that does nothing
+    # is worse than no knob.
+    rf_n_estimators: 400
+    xgb: {n_estimators: 600, max_depth: 6, learning_rate: 0.05, subsample: 0.8, colsample_bytree: 0.8}
+  selectivity:
+    mode: direct_delta             # beats subtracting two potency models
+    pairs: [JAK1-JAK2, JAK1-JAK3, JAK1-TYK2]
+    delta_threshold: 1.0
+    rf_n_estimators: 400
+
+structure:
+  engine: boltz2                  # open, reproducible structure + affinity oracle
+  hinge_residue: Leu959           # JAK1 hinge H-bond constraint (config-driven!)
+  reference_pdb: 3EYG
+
+generative:
+  sampler: mock                   # mock (CPU; replays curated pool) | reinvent4 (GPU, ADR 0003)
+  n_candidates: 500
+  top_k: 20
+  # NO `stages` key: the generator sequence lives in the REINVENT TOMLs under
+  # configs/generative/, which the external scripts actually read. A second copy here was
+  # read by nothing and drifted from the file it claimed to record.
+  scoring:
+    # NO `aggregation` key: BOTH geometric-mean and sum arms are always scored, because their
+    # difference IS the reward-hacking evidence. Naming one here implied a choice that does not exist.
+    components:
+      # Every component must supply the parameters its transform REQUIRES; sigmoid has no default
+      # centre. Three of these previously omitted it and the spec could not run -- the stage was
+      # quietly using its hard-coded default instead. Now validated at config load.
+      - {name: qsar_pic50,           transform: sigmoid,        center: 7.5}
+      - {name: selectivity_delta,    transform: sigmoid,        center: 1.0}
+      - {name: mw,                   transform: double_sigmoid, low: 300, high: 450}
+      - {name: slogp,                transform: double_sigmoid, low: 1.0, high: 4.0}
+      - {name: tpsa,                 transform: double_sigmoid, low: 40,  high: 120}
+      - {name: qed,                  transform: sigmoid,        center: 0.5}
+      - {name: applicability_domain, transform: reverse_sigmoid, center: 0.4, k: 10.0}  # stay in-domain
+    # NO `diversity_filter` key: it recorded `scaffold_similarity` while the campaign config it
+    # described (configs/generative/jak1/armB_v2_rl.toml) specifies IdenticalMurckoScaffold.
+
+
+vls:                              # virtual library screening (ADR 0005). Tier-0/Tier-1 = CPU (built); structure tiers = GPU.
+  enabled: true                   # requires a pulled library at library.path (scripts/pull_zinc22.py)
+  library:                        # Tier 0 — purchasable deck (PIN the snapshot; the tree has no version tags)
+    source: zinc22                # zinc22 in-stock gen g (on-the-shelf, no-auth) | enamine_real | local_sdf
+    snapshot: "zinc-22g H24-26 logP2.0-3.5"   # pulled via scripts/pull_zinc22.py; manifest is the pin
+    path: data/vls/zinc22_instock_leadlike.smi
+    manifest: data/vls/zinc22_instock_leadlike.MANIFEST.sha256
+    # NO screening_cap and NO focus/selection block. Deck size is an OUTPUT of Tier 0, never a
+    # configured constant: "we screened the entire sha256-pinned library" needs no seed and no
+    # defence. (RETIRED 2026-07-24 — the seed-42 cap had ZERO enrichment: a random 10.7% sample
+    # captured ~10.7% of the in-domain compounds. See ADR 0005 §Tier-2-selection-retired.)
+    lead_like: {mw_min: 300, mw_max: 460, logp_max: 3.5, tpsa_max: 140, hbd_max: 5, hba_max: 10, rotb_max: 10}
+    # Only `pains` is selectable. The physicochemical window (from lead_like above) and
+    # de-duplication run unconditionally, so listing them here described a choice that does not
+    # exist -- the config layer now rejects anything but `pains`.
+    prefilters: [pains]
+  tier1:                          # ANNOTATION + STRATIFICATION ONLY — this tier selects nothing.
+    # Applicability domain: derived from the MEASURED out-of-fold residual/coverage curve
+    # (scripts/derive_ad_threshold.py), not folklore. Thresholds are fingerprint-specific.
+    in_domain: 0.5                # sim_to_train >= -> S1, QSAR interval is valid here
+    borderline: 0.35              # [borderline, in_domain) -> S2 near-domain
+    high_conf: 0.6                # priority-eligible band (per-bin coverage ~ the 90% target)
+    conformal_halfwidth: 0.955    # QSAR 90% conformal half-width (pIC50), from the qsar stage
+    hit_floor: 6.0                # 1 uM. Advisory label only — NOT a drop (Tier 2 docks everything)
+    prio_point: 7.0               # front-of-queue potency (point pIC50, ~100 nM)
+    prio_delta: 1.0               # front-of-queue selectivity (log units); never a veto
+    fep_lower: 7.4                # FEP-first: conformal LOWER bound >= (upadacitinib-class, confident)
+    fep_delta: 1.5                # FEP-first selectivity (log units)
+    known_reference_flag: 0.65                # sim_to_known_reference >= -> flag for known-reference review. TRIAGE ONLY, no legal standing.
+  known_reference:                # known-reference similarity reference set (the fast-follower trap: novelty relative to marketed compounds
+                                  # turns on 2D structure, so chasing the originator risks its claims).
+                                  # SMILES from ChEMBL (approved, max_phase 4) — never hand-written.
+    upadacitinib:  "CC[C@@H]1CN(C(=O)NCC(F)(F)F)C[C@@H]1c1cnc2cnc3[nH]ccc3n12"   # CHEMBL3622821
+    tofacitinib:   "C[C@@H]1CCN(C(=O)CC#N)C[C@@H]1N(C)c1ncnc2[nH]ccc12"          # CHEMBL221959
+    baricitinib:   "CCS(=O)(=O)N1CC(CC#N)(n2cc(-c3ncnc4[nH]ccc34)cn2)C1"          # CHEMBL2105759
+    filgotinib:    "O=C(Nc1nc2cccc(-c3ccc(CN4CCS(=O)(=O)CC4)cc3)n2n1)C1CC1"       # CHEMBL3301607
+    abrocitinib:   "CCCS(=O)(=O)N[C@H]1C[C@@H](N(C)c2ncnc3[nH]ccc23)C1"           # CHEMBL3655081
+  actives:                        # priority-signal anchor (NOT the AD term, NOT a gate)
+    pic50_min: 8.0                # "potent known active"
+    max_anchors: 2500
+  tiers:                          # structure tiers (GPU). Budgets live HERE, where compute is actually scarce.
+    # Tier 2 has NO keep-rule: the whole Tier-0-prepared library is docked (~1 GPU-day at
+    # ~10^6/GPU-day fast mode). MEASURE s/ligand on a 5k pilot before relying on this budget;
+    # if the pilot is >5x slower, fall back to active learning (NOT to a random cap).
+    - {name: docking_triage, engine: unidock, mode: fast,    licensed_optional: glide_htvs_sp, keep: all}
+    # Fast-mode scores are a triage filter only — re-dock before ANY ranking (Uni-Dock's own
+    # DUD-E numbers show fast mode enriches measurably worse than detail).
+    - {name: docking_redock, engine: unidock, mode: balance, keep: {top_fraction: 0.05}}
+    - {name: docking_detail, engine: unidock, mode: detail,  keep: {top_fraction: 0.01}}
+    # gnina = orthogonal ARTIFACT filter that deprioritizes pathologies, NOT a potency ranker.
+    - {name: cnn_rescore,    engine: gnina,   mode: rescore_only, licensed_optional: glide_xp, keep: {top_n: 50000}}
+    # Boltz-2: sample across log-spaced score-rank bands + cap per scaffold rather than a pure
+    # top-N (measured to cut artifact content from ~100% to 25-50%).
+    # QSAR + Boltz-2 = ONE opinion (both ChEMBL-trained); the informative signal is disagreement.
+    - {name: cofold_oracle,  engine: boltz2,  use_as: classifier, keep: {top_n: 2000, rank_bands: 5, max_per_scaffold: 3}}
+    # FEP is NOT a screening tier and must not take a diverse top-N. OpenFE/FEP+ compute
+    # RELATIVE binding free energy by alchemically morphing between STRUCTURALLY SIMILAR
+    # ligands, so it needs a congeneric series joined by a perturbation map. Unrelated
+    # scaffolds would require absolute (ABFE) free energy — far harder and less reliable.
+    # A diverse top-N here (`top_n: 40, cluster_first: true`) would be exactly backwards:
+    # for RBFE, analogs of ONE scaffold are the ideal input, not a spread of them.
+    # Re-sited as a LEAD-OPTIMISATION step on a chosen scaffold:
+    #   * pick 1-2 scaffolds that survived docking -> gnina -> Boltz-2
+    #   * enumerate ~12 R-group analogs per scaffold and build a perturbation map
+    #   * run RBFE per isoform: JAK1 AND JAK2 (>=2 isoforms) — this is the ONLY route in the
+    #     whole cascade to a selectivity number, since docking cannot give it (conserved ATP
+    #     site), Boltz-2 gives affinity not isoform discrimination, and the QSAR abstains on
+    #     far-novel compounds. ~12 analogs x 2 isoforms ~ 24 edges ~ 6-12 GPU-days on 1 card.
+    - {name: physics_tip,    engine: openfe,  licensed_optional: [prime_mmgbsa, fep_plus, ifd_md],
+       mode: rbfe_congeneric_series, scaffolds: 1, analogs_per_scaffold: 12,
+       isoforms: [JAK1, JAK2], keep: {edges_per_series: 12}}
+  budget_allocation:              # PRE-REGISTERED stratum quotas (floors, capped by availability).
+                                  # Reasoned rules with reported cutoffs — NOT claimed optimal.
+                                  # The unstratified arm stays the majority so the campaign does not
+                                  # become a similarity search wearing a docking costume.
+    tier3_gnina:  {unstratified: 30000, ad_supported: 14000, far_novel_control: 6000}
+    tier4_boltz2: {exploit: 1000, target_prior: 600, unbiased_control: 400}
+    tier5_openfe: {exploit: 24, target_prior: 10, control: 6}
+    control_arm_min_pct: 15       # below ~10-15% the per-arm distributions stop being separable
+  validation:                     # Gate 0 — must pass BEFORE any novel hit is trusted
+    required_before_prospective: true
+    benchmark: [lit_pcba_style_jak1, dekois2]        # not DUD-E alone (decoy artifacts)
+    split: leave_class_out
+    selectivity_test: rank_selective_over_JAK2_JAK3_TYK2
+    metrics: [EF1, EF5, BEDROC_a20, PR_AUC, ROC_AUC]
+    gate: {ef1_min: 5.0, bedroc_a20_min: 0.30}
+  prospective:                    # terminal honesty gate
+    assays: [biochemical_ic50, spr_or_tsa, selectivity_counterscreen]
+    language: prioritized_candidate   # never "inhibitor" pre-assay
+
+eval:
+  splits: [random, scaffold, temporal]
+  temporal_cutoff_year: 2022      # train pre-2022, predict post-2022 (near-prospective)
+  # Hard gates protect the metrics we trust for generalization. Random-split
+  # near-duplicate leakage is REPORTED as a diagnostic (this data is analog-dense),
+  # not hard-gated — scaffold-CV is the leakage-free number we gate on.
+  gates:
+    scaffold_cv_r2_min: 0.55
+    y_scramble_r2_max: 0.10

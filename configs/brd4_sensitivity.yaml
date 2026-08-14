@@ -1,0 +1,157 @@
+# BRD4 TARGET-ASSOCIATED SENSITIVITY RUN — pooled data, ligand arm only.
+#
+# The historical baseline, retained deliberately: the previously published BRD4 numbers were
+# computed on pooled data, and dropping them would hide the comparison rather than qualify it. This is
+# NOT the headline. Its purpose is to show what the cohort restriction changed.
+#
+# Only the ligand-model and evaluation arm runs here. Receptor preparation, docking and generative work
+# are identical to the headline run and would be duplicated effort with no new information.
+#
+# Gates are UNCHANGED from the headline. A sensitivity cohort that passed on a looser bar would prove
+# nothing.
+#
+# The point of this file is that it is ONLY a config. It runs the same source as the JAK1 case, with no
+# code changes, through the same generic `discovery` stage graph. The identity of that source is the
+# scientific-source digest in provenance/IDENTITY.json, which is recomputable from any tree.
+#
+# BRD4 was chosen over a second kinase deliberately. p38a would have let the pipeline's kinase
+# assumptions ride along unexamined; BRD4 is a bromodomain — an acetyl-lysine READER pocket, not an
+# ATP site — with unrelated chemotypes. If retargeting is real it should survive a target-class
+# change, and where it does not, the config is where that shows up.
+#
+# WHAT THE TARGET CHANGE ACTUALLY EXPOSED (measured, not assumed — see docs/RESULTS.md):
+#
+#   1. The lead-like window tuned on JAK1 (MW 300-460, cLogP <=3.5) EXCLUDES 5 of 7 BET reference
+#      compounds, mostly on lipophilicity: JQ1 cLogP 5.53, birabresib 5.53 and MW 492, mivebresib
+#      4.37, pelabresib 4.07, molibresib 3.66. Inheriting those bounds would have left the screen
+#      structurally unable to find the known chemistry for this target while reporting success. The
+#      bounds below are widened to admit the measured reference profile.
+#   2. There is NO approved BRD4 drug. The JAK1 case used five marketed inhibitors as a positive
+#      control; the most advanced BET compounds are phase 3 (pelabresib, apabetalone). The reference
+#      set below is therefore clinical-stage and tool compounds, labelled as such — it is NOT the
+#      "approved drug" control the JAK1 results relied on, and no claim here may assume it is.
+#   3. Comparator data is thin: BRD4 has MORE primary data than JAK1 (19,601 vs 15,035 IC50 rows),
+#      but BRDT has 356 rows against TYK2's 6,382. The selectivity arm is expected to be weak or
+#      unsupportable here, which is precisely the case the OPTIONAL selectivity stage exists for.
+
+target: brd4_sensitivity
+seed: 42
+
+data:
+  chembl_release: "34"            # same release as the JAK1 case, for comparability
+  # Verified against the live API (pref_name lookup), not carried over from memory: ChEMBL's
+  # pref_name for these is "Bromodomain-containing protein N", so a gene-symbol search finds
+  # nothing — searching BRD4 by name returns BICRA, an unrelated protein.
+  targets:
+    BRD4: CHEMBL1163125           # Bromodomain-containing protein 4   — 19,601 IC50 rows
+    BRD2: CHEMBL1293289           # Bromodomain-containing protein 2   —  1,305
+    BRD3: CHEMBL1795186           # Bromodomain-containing protein 3   —  1,173
+    BRDT: CHEMBL1795185           # Bromodomain testis-specific protein —    356
+  primary: BRD4
+  # FROZEN COHORT (medchem.cohorts, spec 1.2). Both axes are required, because fixing one and
+  # pooling the other only trades one ambiguity for another:
+  #   domain  — one phase-3 BET reference reads 5.85 on BD1 and 6.88 on BD2 (1.03 log units)
+  #   format  — JAK1 biochemical and cell-based medians sit 0.45 log units apart
+  # Comparators carry the SAME cohort: a domain-matched primary against pooled comparators would
+  # preserve exactly the ambiguity being removed.
+  activity_types: [IC50]
+  standardize_units_to: pIC50
+  dedup: median
+
+
+curation:
+  # HOW rows become labels. Separate from `data` so a cohort change does not
+  # re-fetch the snapshot: headline and sensitivity must share identical raw bytes.
+  assay_cohort:
+    name: target_associated
+    label: "BRD4 target-associated — SENSITIVITY"
+  temporal_cutoff_year: 2022
+
+features:                         # UNCHANGED from the JAK1 case, deliberately: if featurisation had
+  fingerprint: ecfp4              # to be retuned per target, the "config-only" claim would be false
+  radius: 2
+  n_bits: 2048
+  use_chirality: true             # BET chemotypes are stereochemically defined ((S)-JQ1 vs (R)-JQ1)
+  descriptors: [MolWt, MolLogP, TPSA, NumHDonors, NumHAcceptors, QED, NumRotatableBonds, NumAromaticRings, FractionCSP3]
+
+model:                            # UNCHANGED hyperparameters, same reason
+  potency:
+    rf_n_estimators: 400
+    xgb: {n_estimators: 600, max_depth: 6, learning_rate: 0.05, subsample: 0.8, colsample_bytree: 0.8}
+  selectivity:
+    mode: direct_delta
+    # BET-family pairs. Expected to be data-limited (see note 3 above); reported honestly rather
+    # than dropped, so the low-n case is visible in the metrics instead of hidden by omission.
+    pairs: [BRD4-BRD2, BRD4-BRD3, BRD4-BRDT]
+    delta_threshold: 1.0
+    rf_n_estimators: 400
+
+structure:
+  engine: boltz2
+  # SELECTED BY EVIDENCE, not from memory -- scripts/select_reference_structure.py queries RCSB and
+  # matches each entry's bound ligand by STRUCTURE against this target's clinical compounds, because
+  # PDB ligand names are chemical rather than commercial and name-matching misses them.
+  #
+  # 4J3I: 1.24 A, BRD4 BD1 (residues 42-168), ligand 1K0 = apabetalone (RVX-208) at Tanimoto 1.00 --
+  # an exact match to a PHASE 3 compound, not an analogue.
+  #
+  # Rejected alternatives, recorded so the choice is auditable:
+  #   3MXF (the earlier choice)  2.00 A, ligand JQ1 -- a TOOL compound, and the lowest resolution here
+  #   6I7Y                       1.00 A, but its ligand is a molibresib ANALOGUE (T=0.65), not the drug
+  #   6YQO                       1.07 A, birabresib-like (T=0.80), again an analogue
+  #   5DW2                       1.12 A, apabetalone-like (T=0.74)
+  # Domain was checked explicitly: all candidates are BD1. That mattered because apabetalone is
+  # BD2-SELECTIVE in function, so a BD2 co-crystal would have centred the box on a different pocket
+  # from the one the generated triazolodiazepine chemotype targets.
+  reference_pdb: 4J3I
+  reference_ligand: 1K0           # named, so the box centre is reproducible rather than "the biggest HET"
+  box_size: 22.0
+  ph: 7.4
+  # RETAIN the ordered waters within 4 A of the co-crystal ligand. This is not a tuning knob: a
+  # bromodomain recognises acetyl-lysine THROUGH a conserved water network at the base of the pocket,
+  # and docking a dry BET site scores a pocket that does not exist. 4J3I has 257 waters in total, 22
+  # of them within 4 A of the ligand -- that shell is the network. An ATP-site target can leave this
+  # unset, which drops every water; the difference is target-class chemistry, not preference.
+  keep_waters_within: 4.0
+  # NOT `hinge_residue`: a bromodomain has no kinase hinge. Recognition runs through a conserved
+  # asparagine that hydrogen-bonds the acetyl-lysine mimic, plus a structured water network. The two
+  # keys are the same concept in different target vocabularies, and BOTH ARE NOW LOAD-BEARING: the
+  # receptor stage asserts the named residue exists, is the residue type named, and lies inside the
+  # docking box. On 4J3I this passes with 8/8 atoms of ASN140 in the box, and residue 140 is confirmed
+  # to be an ASN -- so the annotation is checked against the structure rather than trusted.
+  anchor_residue: Asn140
+
+generative:
+  sampler: mock                   # CPU wiring proof; the GPU arm ran externally for JAK1 only
+  n_candidates: 500
+  top_k: 20
+  scoring:
+    # Same reward SHAPE as JAK1. Every component supplies the parameters its transform requires —
+    # `sigmoid` has no default centre, and a spec missing one is rejected at config load.
+    components:
+      - {name: qsar_pic50,           transform: sigmoid,        center: 7.5}
+      - {name: selectivity_delta,    transform: sigmoid,        center: 1.0}
+      # MW/cLogP windows widened to the BET reference profile, matching the lead-like note above.
+      - {name: mw,                   transform: double_sigmoid, low: 330, high: 520}
+      - {name: slogp,                transform: double_sigmoid, low: 2.0, high: 5.5}
+      - {name: tpsa,                 transform: double_sigmoid, low: 60,  high: 140}
+      - {name: qed,                  transform: sigmoid,        center: 0.5}
+      - {name: applicability_domain, transform: reverse_sigmoid, center: 0.4, k: 10.0}
+
+vls:
+  enabled: false
+
+eval:
+  splits: [random, scaffold, temporal]
+  # Same cutoff as JAK1 so the two temporal numbers are comparable.
+  # MEASURED, and it falsified the guess this comment used to contain: BRD4's post-2022 test set is
+  # LARGER, not smaller (2,400 of 7,955 = 30%, against JAK1's 1,356 of 7,912 = 17%). BET chemistry in
+  # ChEMBL 34 is more recent than JAK, not less. BRD4's temporal R2 is also better (+0.130 vs -0.102
+  # on the pooled cohorts; +0.013 vs -0.362 on the headline cohorts). The earlier figures here
+  # (+0.116 / -0.111) predated the era-label fix and were computed from LEAKED labels.
+  # though still poor, and with a higher MAE. See docs/RESULTS.md.
+  temporal_cutoff_year: 2022
+  gates:
+    # Identical gates. Loosening them for a harder target would make "it generalises" unfalsifiable.
+    scaffold_cv_r2_min: 0.55
+    y_scramble_r2_max: 0.10

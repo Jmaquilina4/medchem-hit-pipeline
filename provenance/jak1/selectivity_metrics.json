@@ -1,0 +1,149 @@
+{
+  "pairs_requested": [
+    "JAK1-JAK2",
+    "JAK1-JAK3",
+    "JAK1-TYK2"
+  ],
+  "pairs_supported": [
+    "JAK1-JAK2",
+    "JAK1-JAK3",
+    "JAK1-TYK2"
+  ],
+  "pairs_unsupported": [],
+  "pairs_not_evaluated": {},
+  "support_note": "An unsupported pair is NOT a modelling failure to be hidden: it means the public data cannot answer the selectivity question for that pair, usually because almost no compound exceeds the threshold. The run continues and the potency model stands on its own. Read every pr_auc against its pr_auc_baseline, never against another target's.",
+  "direct_delta_scaffold_cv": {
+    "JAK1-JAK2": {
+      "n": 5805,
+      "n_selective": 1840,
+      "r2": 0.7717689035979908,
+      "mae": 0.28753184760588846,
+      "rmse": 0.4211151472919456,
+      "pr_auc": 0.8557970161070946,
+      "roc_auc": 0.9147933000712759,
+      "top10_enrichment": 2.991707271364318,
+      "pr_auc_baseline": 0.3169681309216193,
+      "pr_auc_lift_over_baseline": 2.6999465644030893,
+      "n_splits": 5,
+      "support": {
+        "supported": true,
+        "reasons": [],
+        "n_paired": 5805,
+        "n_selective": 1840,
+        "prevalence": 0.3169681309216193,
+        "r2_ci95": [
+          0.7544448643002195,
+          0.7892448943312755
+        ],
+        "r2_distinguishable_from_zero": true
+      }
+    },
+    "JAK1-JAK3": {
+      "n": 2973,
+      "n_selective": 1414,
+      "r2": 0.7936873600159664,
+      "mae": 0.42845047678778325,
+      "rmse": 0.5979076843035823,
+      "pr_auc": 0.943310718734395,
+      "roc_auc": 0.9479923571941176,
+      "top10_enrichment": 2.0954666895260954,
+      "pr_auc_baseline": 0.47561385805583584,
+      "pr_auc_lift_over_baseline": 1.9833541490787527,
+      "n_splits": 5,
+      "support": {
+        "supported": true,
+        "reasons": [],
+        "n_paired": 2973,
+        "n_selective": 1414,
+        "prevalence": 0.47561385805583584,
+        "r2_ci95": [
+          0.7768605933882612,
+          0.8104151181631973
+        ],
+        "r2_distinguishable_from_zero": true
+      }
+    },
+    "JAK1-TYK2": {
+      "n": 2482,
+      "n_selective": 1087,
+      "r2": 0.8426386049104782,
+      "mae": 0.35493049955712874,
+      "rmse": 0.49419097865273,
+      "pr_auc": 0.9414647468409576,
+      "roc_auc": 0.9576747682780861,
+      "top10_enrichment": 2.274141614980562,
+      "pr_auc_baseline": 0.43795326349717967,
+      "pr_auc_lift_over_baseline": 2.149692273835563,
+      "n_splits": 5,
+      "support": {
+        "supported": true,
+        "reasons": [],
+        "n_paired": 2482,
+        "n_selective": 1087,
+        "prevalence": 0.43795326349717967,
+        "r2_ci95": [
+          0.8232823032351259,
+          0.8600512184609544
+        ],
+        "r2_distinguishable_from_zero": true
+      }
+    }
+  },
+  "direct_vs_potency": {
+    "JAK1-JAK2": {
+      "direct_delta_rf": {
+        "r2": 0.7717689035979908,
+        "pr_auc": 0.8557970161070946
+      },
+      "pot_delta_rf": {
+        "r2": 0.7348369263299146,
+        "pr_auc": 0.8157079862851597
+      },
+      "pot_delta_xgb_desc": {
+        "r2": 0.7490417694697908,
+        "pr_auc": 0.8138390729142101
+      }
+    },
+    "JAK1-JAK3": {
+      "direct_delta_rf": {
+        "r2": 0.7936873600159664,
+        "pr_auc": 0.943310718734395
+      },
+      "pot_delta_rf": {
+        "r2": 0.7685354224315355,
+        "pr_auc": 0.9279031228266836
+      },
+      "pot_delta_xgb_desc": {
+        "r2": 0.763175385662046,
+        "pr_auc": 0.9340446094130574
+      }
+    },
+    "JAK1-TYK2": {
+      "direct_delta_rf": {
+        "r2": 0.8426386049104782,
+        "pr_auc": 0.9414647468409576
+      },
+      "pot_delta_rf": {
+        "r2": 0.8231992685252112,
+        "pr_auc": 0.9252431613350139
+      },
+      "pot_delta_xgb_desc": {
+        "r2": 0.8209954695700354,
+        "pr_auc": 0.9275259233160684
+      }
+    }
+  },
+  "comparison_note": "Headline = direct_delta_rf vs pot_delta_rf: identical features (chiral ECFP4 + desc), identical RF, identical folds \u2014 only the target formulation differs. pot_delta_xgb_desc is a secondary tuned-potency variant (different algorithm).",
+  "delta_threshold": 1.0,
+  "production_model": {
+    "written": true,
+    "basis_column": "delta_min_vs_comparators",
+    "supported_comparators": [
+      "JAK2",
+      "JAK3",
+      "TYK2"
+    ],
+    "note": "every requested pair is supported; aggregate spans all comparators",
+    "n_training_compounds": 6202
+  }
+}

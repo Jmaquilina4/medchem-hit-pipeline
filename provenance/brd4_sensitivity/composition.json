@@ -1,0 +1,80 @@
+{
+  "describes": "the BRD4 target's assay-label mixture, shared by both of its panels",
+  "target": "BRD4",
+  "panels_sharing_this_record": [
+    "brd4",
+    "brd4_sensitivity"
+  ],
+  "cohort_spec_version": "1.2",
+  "n_assays": 3684,
+  "n_activity_records": 19601,
+  "inputs": {
+    "BRD4_raw.csv": "2ab72ede42d204da80573ab572c92f466030965ea42cbba916022c97d57d525f",
+    "BRD4_assays.csv": "1537a34397b233f4c1c5e14d38ffef5364c8cb6ffcb25a8e8d57b4de3844b638"
+  },
+  "note": "pct_assays and pct_records have DIFFERENT denominators and differ by up to 3x. Cell-based assays are numerous but small; domain-resolved assays are fewer and larger. Quote which one you mean.",
+  "by_label": {
+    "domain_1": {
+      "assays": 704,
+      "pct_assays": 19.1,
+      "records": 9353,
+      "pct_records": 47.7,
+      "curated_compounds": 3753,
+      "median_pIC50_curated": 6.26
+    },
+    "biochemical": {
+      "assays": 288,
+      "pct_assays": 7.8,
+      "records": 4898,
+      "pct_records": 25.0,
+      "curated_compounds": 2425,
+      "median_pIC50_curated": 6.07
+    },
+    "cell_based": {
+      "assays": 2168,
+      "pct_assays": 58.8,
+      "records": 3096,
+      "pct_records": 15.8,
+      "curated_compounds": 1248,
+      "median_pIC50_curated": 6.51
+    },
+    "domain_2": {
+      "assays": 322,
+      "pct_assays": 8.7,
+      "records": 1233,
+      "pct_records": 6.3,
+      "curated_compounds": 966,
+      "median_pIC50_curated": 6.71
+    },
+    "unmatched": {
+      "assays": 190,
+      "pct_assays": 5.2,
+      "records": 995,
+      "pct_records": 5.1,
+      "curated_compounds": 733,
+      "median_pIC50_curated": 6.58
+    },
+    "full_length": {
+      "assays": 12,
+      "pct_assays": 0.3,
+      "records": 26,
+      "pct_records": 0.1,
+      "curated_compounds": 17,
+      "median_pIC50_curated": 6.33
+    }
+  },
+  "median_gaps_log_units": {
+    "biochemical_minus_cell_based": -0.44,
+    "domain_1_minus_domain_2": -0.45,
+    "apabetalone_domain_2_minus_domain_1": 1.03
+  },
+  "reference_compounds": {
+    "apabetalone": {
+      "biochemical": 6.07,
+      "cell_based": 5.56,
+      "domain_1": 5.85,
+      "domain_2": 6.88,
+      "unmatched": 5.7
+    }
+  }
+}

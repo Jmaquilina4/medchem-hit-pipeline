@@ -1,0 +1,120 @@
+# BRD4 scoring — PIPELINE VERIFICATION. Mirrors the JAK1 reward SHAPE with BRD4's own bounds.
+#
+# The critical line is `--config ../../configs/brd4.yaml` on the ExternalProcess endpoints. Without it
+# the bridge refuses to run, by design: it used to pick a QSAR model by globbing across every target
+# and silently resolved to JAK1's, which would have scored BRD4 molecules against JAK1's model, JAK1's
+# applicability domain and JAK1's marketed reference compounds.
+#
+# Aggregation is geometric_mean for the same reason as JAK1: one failing component drives the whole
+# score toward zero, so a molecule cannot buy bad potency with good physchem.
+
+run_type = "scoring"
+device = "cpu"
+json_out_config = "_scoring.json"
+
+[parameters]
+smiles_file = "score_input.smi"
+output_csv = "scored_check.csv"
+
+[scoring]
+type = "geometric_mean"
+
+[[scoring.component]]
+[scoring.component.ExternalProcess]
+
+[[scoring.component.ExternalProcess.endpoint]]
+name = "QSAR potency floor (BRD4 model)"
+weight = 3
+params.executable = "../../.venv/bin/python"
+params.args = "../../scripts/reinvent_oracle.py --config ../../configs/brd4.yaml"
+params.property = "qsar_pic50"
+transform.type = "sigmoid"
+transform.high = 8.0
+transform.low = 6.5
+transform.k = 0.8
+
+[[scoring.component.ExternalProcess.endpoint]]
+name = "Applicability-domain band (BRD4 training set)"
+weight = 3
+params.executable = "../../.venv/bin/python"
+params.args = "../../scripts/reinvent_oracle.py --config ../../configs/brd4.yaml"
+params.property = "sim_to_train"
+transform.type = "double_sigmoid"
+transform.high = 0.55
+transform.low = 0.35
+transform.coef_div = 0.55
+transform.coef_si = 40.0
+transform.coef_se = 40.0
+
+[[scoring.component.ExternalProcess.endpoint]]
+name = "Known-reference similarity alert (BET clinical/tool compounds)"
+weight = 2
+params.executable = "../../.venv/bin/python"
+params.args = "../../scripts/reinvent_oracle.py --config ../../configs/brd4.yaml"
+params.property = "sim_to_known_reference"
+transform.type = "reverse_sigmoid"
+transform.high = 0.60
+transform.low = 0.30
+transform.k = 0.5
+
+# Physchem windows are BRD4's, not JAK1's: the acetyl-lysine pocket is hydrophobic, so the JAK1
+# window (cLogP <= 3.5) rejects 5 of 7 BET reference compounds.
+[[scoring.component]]
+[scoring.component.MolecularWeight]
+[[scoring.component.MolecularWeight.endpoint]]
+name = "Molecular weight"
+weight = 2
+transform.type = "double_sigmoid"
+transform.high = 520.0
+transform.low = 330.0
+transform.coef_div = 520.0
+transform.coef_si = 20.0
+transform.coef_se = 20.0
+
+[[scoring.component]]
+[scoring.component.SlogP]
+[[scoring.component.SlogP.endpoint]]
+name = "cLogP"
+weight = 2
+transform.type = "double_sigmoid"
+transform.high = 5.5
+transform.low = 2.0
+transform.coef_div = 5.5
+transform.coef_si = 20.0
+transform.coef_se = 20.0
+
+[[scoring.component]]
+[scoring.component.TPSA]
+[[scoring.component.TPSA.endpoint]]
+name = "TPSA"
+weight = 1
+transform.type = "double_sigmoid"
+transform.high = 140.0
+transform.low = 60.0
+transform.coef_div = 140.0
+transform.coef_si = 20.0
+transform.coef_se = 20.0
+
+[[scoring.component]]
+[scoring.component.QED]
+[[scoring.component.QED.endpoint]]
+name = "QED"
+weight = 1
+transform.type = "sigmoid"
+transform.high = 0.85
+transform.low = 0.45
+transform.k = 0.5
+
+# The BET acetyl-lysine mimic must survive: LibInvent guarantees it structurally, so this should
+# always score 1.0. It is here to make the invariant explicit and to fail loudly if a scaffold edit
+# ever breaks it.
+[[scoring.component]]
+[scoring.component.MatchingSubstructure]
+[[scoring.component.MatchingSubstructure.endpoint]]
+name = "BET azepine core retained"
+weight = 1
+# The full derived Murcko core. Validated: parses as SMARTS and matches 60/60 sampled
+# molecules. The shorter "C2=NCc3oncc3" was NOT valid SMARTS -- unmatched ring closures
+# make RDKit return None, and the match then raises inside the scoring run.
+params.smarts = ["c1ccc(C2=NCc3oncc3-c3ccccc32)cc1"]
+params.use_chirality = false

@@ -1,0 +1,58 @@
+# =============================================================================================
+# NOTE ON SYNTAX: git does NOT strip trailing inline comments from pattern lines. A line like
+#     build/    # some explanation
+# is treated as the LITERAL pattern "build/    # some explanation" and matches nothing, so a
+# directory meant to be ignored stays committable. Every comment here is therefore on its own
+# line. Verify any pattern with:
+#     git check-ignore -v <path>
+# =============================================================================================
+
+# --- environment + caches --------------------------------------------------------------------
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.DS_Store
+
+# --- regenerated pipeline artifacts ----------------------------------------------------------
+# Rebuilt from the pinned source release and the documented library tranches.
+# LEADING SLASH IS LOAD-BEARING: a bare `data/` matches at ANY depth, which silently excluded the
+# src/medchem/data/ SOURCE PACKAGE and left the pushed repo unimportable from a clean clone.
+# `/data/*` rather than `/data/`: git does not descend into an EXCLUDED directory, so a negation
+# under a plain `/data/` exclusion never matches. The published ChEMBL snapshots are the one thing in
+# here that must ship -- hashes prove identity but cannot reconstruct data, so without the bytes the
+# frozen metrics are unverifiable. They are 2.7 MB gzipped and CC BY-SA 3.0 (see their README).
+/data/*
+!/data/frozen_snapshots/
+/runs/
+/processed/
+.medchem_cache/
+
+# --- ChEMBL-derived data ---------------------------------------------------------------------
+# ChEMBL is CC BY-SA 3.0. Redistributing curated derivatives carries share-alike + attribution
+# obligations, so we ship the SCRIPTS that regenerate them from pinned release 34 instead.
+*_training_ic50*.csv
+*_curated_ic50*.csv
+ALLJAK_*.csv
+
+# --- large or licence-encumbered inputs ------------------------------------------------------
+# The ZINC22 library slice (27 MB) and prepared receptor are regenerable from documented queries.
+assets/dock_inputs/*.smi
+assets/dock_inputs/*.smi.gz
+assets/dock_inputs/*.csv.gz
+*.prior
+*.ckpt
+*.joblib
+*.pkl
+
+# The scanner's private pattern list. Publishing it would publish the strings it
+# exists to detect.
+scripts/leak_patterns_local.toml
+
+# --- scratch ---------------------------------------------------------------------------------
+*.log
+/tmp/
+scratch/

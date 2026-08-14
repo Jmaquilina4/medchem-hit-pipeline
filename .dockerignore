@@ -1,0 +1,16 @@
+# Trim the remote-build context — the image only needs src/ + pyproject + uv.lock + configs.
+.git/
+.venv/
+runs/
+data/
+.medchem_cache/
+results/
+docs/
+tests/
+**/__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.pptx
+
+# ship only the gzipped libraries into images (keep uncompressed copies local)
+assets/dock_inputs/*.smi

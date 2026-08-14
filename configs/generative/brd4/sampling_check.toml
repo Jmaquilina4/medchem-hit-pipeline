@@ -1,0 +1,17 @@
+# BRD4 LibInvent sampling — PIPELINE VERIFICATION AT FRACTION SCALE.
+#
+# The JAK1 arm sampled 10,000 per scaffold. This asks for 500 total, because the question is "does the
+# generative arm run for a new target and hand its output to the scorer", not "what does BRD4
+# chemistry look like". No output here is a candidate.
+#
+# device = "mps": this host is Apple Silicon with no CUDA. LibInvent sampling runs on MPS.
+run_type = "sampling"
+device = "mps"
+
+[parameters]
+model_file = "${REPO}/external/REINVENT4/priors/libinvent.prior"
+smiles_file = "scaffolds.smi"
+output_file = "sampled_check.csv"
+num_smiles = 500
+unique_molecules = true
+randomize_smiles = true

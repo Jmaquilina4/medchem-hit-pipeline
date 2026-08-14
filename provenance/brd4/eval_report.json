@@ -1,0 +1,106 @@
+{
+  "n_compounds": 2794,
+  "random_split": {
+    "rf": {
+      "r2": 0.7872189439106814,
+      "mae": 0.3826628150825748,
+      "rmse": 0.5259716619837307
+    },
+    "xgb": {
+      "r2": 0.793258547782898,
+      "mae": 0.3806333839893341,
+      "rmse": 0.5184533259003757
+    }
+  },
+  "y_scramble_r2": -0.12508285572992706,
+  "scaffold_cv": {
+    "r2": 0.7282604713802937,
+    "mae": 0.4238311057590208,
+    "rmse": 0.5865451302583206,
+    "fold_r2_mean": 0.7245809660145168,
+    "fold_r2_std": 0.025243414397691927,
+    "n_splits": 5
+  },
+  "temporal_split": {
+    "r2": 0.01896047061716022,
+    "mae": 0.8370591121639185,
+    "rmse": 1.059907992790908,
+    "cutoff_year": 2022,
+    "n_train": 2158,
+    "n_test": 636,
+    "train_label_source": "pre-cutoff median (era-split labels from curation)",
+    "n_train_dropped_no_pre_label": 0
+  },
+  "class_balance": {
+    "weighted": {
+      "r2": 0.783078908161712,
+      "mae": 0.3944481218114593,
+      "rmse": 0.5310638711771513
+    },
+    "balanced_one_per_scaffold": {
+      "r2": 0.7461999994087821,
+      "mae": 0.4440290665455922,
+      "rmse": 0.574436034458584
+    },
+    "n_weighted": 2235,
+    "n_balanced": 1106
+  },
+  "applicability_domain": [
+    {
+      "bin": ">0.9",
+      "n": 48,
+      "mae": 0.334837765544653
+    },
+    {
+      "bin": "0.7-0.9",
+      "n": 397,
+      "mae": 0.35007999992565786
+    },
+    {
+      "bin": "0.5-0.7",
+      "n": 95,
+      "mae": 0.4115773332848286
+    },
+    {
+      "bin": "0.3-0.5",
+      "n": 15,
+      "mae": 0.9617574121130839
+    },
+    {
+      "bin": "<0.3",
+      "n": 4,
+      "mae": 1.3320832676937184
+    }
+  ],
+  "leakage": {
+    "nn_tanimoto_median": 0.7941176295280457,
+    "nn_tanimoto_p95": 0.947503387928009,
+    "exact_dupes": 7,
+    "test_scaffold_overlap_frac": 0.6601073345259392
+  },
+  "baselines": {
+    "mean_predictor": {
+      "r2": -0.0005611181259155273,
+      "mae": 0.945645272731781,
+      "rmse": 1.1405587373063475
+    },
+    "morgan_ridge": {
+      "r2": 0.6910487413406372,
+      "mae": 0.4598401188850403,
+      "rmse": 0.6337833492450624
+    }
+  },
+  "gates": {
+    "scaffold_cv_r2_min": {
+      "threshold": 0.55,
+      "value": 0.7282604713802937,
+      "pass": true
+    },
+    "y_scramble_r2_max": {
+      "threshold": 0.1,
+      "value": -0.12508285572992706,
+      "pass": true
+    }
+  },
+  "gate_status": "pass"
+}

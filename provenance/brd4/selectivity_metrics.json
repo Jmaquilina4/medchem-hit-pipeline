@@ -1,0 +1,150 @@
+{
+  "pairs_requested": [
+    "BRD4-BRD2",
+    "BRD4-BRD3",
+    "BRD4-BRDT"
+  ],
+  "pairs_supported": [],
+  "pairs_unsupported": [
+    "BRD4-BRD2",
+    "BRD4-BRD3",
+    "BRD4-BRDT"
+  ],
+  "pairs_not_evaluated": {},
+  "support_note": "An unsupported pair is NOT a modelling failure to be hidden: it means the public data cannot answer the selectivity question for that pair, usually because almost no compound exceeds the threshold. The run continues and the potency model stands on its own. Read every pr_auc against its pr_auc_baseline, never against another target's.",
+  "direct_delta_scaffold_cv": {
+    "BRD4-BRD2": {
+      "n": 80,
+      "n_selective": 5,
+      "r2": 0.14200918892523406,
+      "mae": 0.42774156249999995,
+      "rmse": 0.5430982482839201,
+      "pr_auc": 0.1174671592775041,
+      "roc_auc": 0.6853333333333333,
+      "top10_enrichment": 2.0,
+      "pr_auc_baseline": 0.0625,
+      "pr_auc_lift_over_baseline": 1.8794745484400657,
+      "n_splits": 5,
+      "support": {
+        "supported": false,
+        "reasons": [
+          "R\u00b2 95% CI [-0.075, 0.277] spans zero \u2014 not distinguishable from noise"
+        ],
+        "n_paired": 80,
+        "n_selective": 5,
+        "prevalence": 0.0625,
+        "r2_ci95": [
+          -0.07480597342184916,
+          0.27703013150028744
+        ],
+        "r2_distinguishable_from_zero": false
+      }
+    },
+    "BRD4-BRD3": {
+      "n": 56,
+      "n_selective": 7,
+      "r2": 0.101813765375951,
+      "mae": 0.4358542410714285,
+      "rmse": 0.5935553299457693,
+      "pr_auc": 0.3764363604653986,
+      "roc_auc": 0.5102040816326531,
+      "top10_enrichment": 3.2,
+      "pr_auc_baseline": 0.125,
+      "pr_auc_lift_over_baseline": 3.0114908837231886,
+      "n_splits": 5,
+      "support": {
+        "supported": false,
+        "reasons": [
+          "R\u00b2 95% CI [-0.141, 0.269] spans zero \u2014 not distinguishable from noise"
+        ],
+        "n_paired": 56,
+        "n_selective": 7,
+        "prevalence": 0.125,
+        "r2_ci95": [
+          -0.14138777603644023,
+          0.26877666194372124
+        ],
+        "r2_distinguishable_from_zero": false
+      }
+    },
+    "BRD4-BRDT": {
+      "n": 54,
+      "n_selective": 11,
+      "r2": -0.025981162199305352,
+      "mae": 0.4363421296296297,
+      "rmse": 0.7438434349690315,
+      "pr_auc": 0.4861600696311569,
+      "roc_auc": 0.5940803382663848,
+      "top10_enrichment": 2.9454545454545453,
+      "pr_auc_baseline": 0.2037037037037037,
+      "pr_auc_lift_over_baseline": 2.386603978189316,
+      "n_splits": 5,
+      "support": {
+        "supported": false,
+        "reasons": [
+          "R\u00b2 95% CI [-0.210, 0.200] spans zero \u2014 not distinguishable from noise"
+        ],
+        "n_paired": 54,
+        "n_selective": 11,
+        "prevalence": 0.2037037037037037,
+        "r2_ci95": [
+          -0.21034085579084844,
+          0.20021225352431568
+        ],
+        "r2_distinguishable_from_zero": false
+      }
+    }
+  },
+  "direct_vs_potency": {
+    "BRD4-BRD2": {
+      "direct_delta_rf": {
+        "r2": 0.14200918892523406,
+        "pr_auc": 0.1174671592775041
+      },
+      "pot_delta_rf": {
+        "r2": 0.00587937807346306,
+        "pr_auc": 0.17990196078431372
+      },
+      "pot_delta_xgb_desc": {
+        "r2": 0.13433681133392528,
+        "pr_auc": 0.17463008006486266
+      }
+    },
+    "BRD4-BRD3": {
+      "direct_delta_rf": {
+        "r2": 0.101813765375951,
+        "pr_auc": 0.3764363604653986
+      },
+      "pot_delta_rf": {
+        "r2": -0.21857356446058462,
+        "pr_auc": 0.1332260176797992
+      },
+      "pot_delta_xgb_desc": {
+        "r2": -0.5617751018789146,
+        "pr_auc": 0.10460493105223437
+      }
+    },
+    "BRD4-BRDT": {
+      "direct_delta_rf": {
+        "r2": -0.025981162199305352,
+        "pr_auc": 0.4861600696311569
+      },
+      "pot_delta_rf": {
+        "r2": -0.24915614910791328,
+        "pr_auc": 0.47312852684085227
+      },
+      "pot_delta_xgb_desc": {
+        "r2": -0.5515505813921764,
+        "pr_auc": 0.39160119341937527
+      }
+    }
+  },
+  "comparison_note": "Headline = direct_delta_rf vs pot_delta_rf: identical features (chiral ECFP4 + desc), identical RF, identical folds \u2014 only the target formulation differs. pot_delta_xgb_desc is a secondary tuned-potency variant (different algorithm).",
+  "delta_threshold": 1.0,
+  "production_model": {
+    "written": false,
+    "basis_column": null,
+    "supported_comparators": [],
+    "note": "no selectivity model written: no pair is supported. Downstream stages take the optional-selectivity path rather than scoring against noise."
+  }
+}

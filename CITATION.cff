@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+title: "medchem-hit-pipeline: a reproducible, config-driven pipeline for bioactivity modelling and computational compound prioritisation"
+message: "If you use this software, please cite it."
+type: software
+authors:
+  - family-names: Aquilina
+    given-names: Jake
+version: 0.2.0
+date-released: 2026-08-14
+repository-code: "https://github.com/Jmaquilina4/medchem-hit-pipeline"
+license: MIT
+keywords:
+  - drug-discovery
+  - cheminformatics
+  - qsar
+  - reinvent
+  - kinase

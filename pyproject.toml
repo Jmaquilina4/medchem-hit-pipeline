@@ -1,0 +1,81 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "medchem"
+version = "0.2.0"
+description = "A reproducible, config-driven pipeline for small-molecule lead generation against an already-validated target. Retarget by editing one config file; evaluated on a kinase and a bromodomain."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Jake Aquilina" }]
+keywords = ["drug-discovery", "cheminformatics", "qsar", "reinvent", "kinase", "jak"]
+dependencies = [
+  "typer>=0.12",
+  "pydantic>=2.6",
+  "pyyaml>=6.0",
+  "numpy>=1.26",
+  "pandas>=2.1",
+]
+
+[project.optional-dependencies]
+# Heavy science deps: required by curation, featurisation, QSAR, selectivity and evaluation.
+science = [
+  "rdkit>=2024.3.1",
+  "scikit-learn>=1.4",
+  "xgboost>=2.0",
+  "pandera>=0.20",
+  "matplotlib>=3.8",
+  "chembl-webresource-client>=0.10.9",
+]
+# Structure/docking tier. Ligand prep (RDKit + Meeko) is CPU and runs anywhere; the docking
+# ENGINES are separate: Uni-Dock/Vina-GPU need CUDA (not installable on macOS arm64 — the
+# vina python bindings also require Boost under /usr/local, which Apple-Silicon brew doesn't
+# provide), and Glide needs a Schrödinger licence. So prep is measured locally and the docking
+# kernel is measured on the GPU box. See docs/adr/0005.
+docking = [
+  "meeko>=0.7",
+  "gemmi>=0.6",     # meeko 0.7 imports gemmi at package import but does not declare it
+  "pdb2pqr>=3.7",   # receptor protonation at pH 7.4 -> PQR -> Meeko PDBQT
+]
+# Generative GPU backends (REINVENT4, Boltz-2, torch) are NOT declared: the package ships the
+# interfaces they would implement, and those interfaces raise. Declaring the dependencies would
+# imply an integration this repository does not contain.
+dev = [
+  "pytest>=8.0",
+  "ruff>=0.5",
+  "pyright>=1.1.370",
+  "pandas-stubs>=2.2",
+]
+
+[project.scripts]
+medchem = "medchem.cli:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/medchem"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+src = ["src", "tests"]
+# One-off scripts under scripts/ are not the pipeline of record and are excluded
+# from lint/type-check; the pipeline itself lives in src/ and is fully checked.
+# scripts/ IS linted here: this tree contains only the pipeline of record and the
+# release tooling, not the one-off scripts that forced a blanket exemption.
+extend-exclude = ["external"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pyright]
+include = ["src", "tests"]
+exclude = ["external", "**/__pycache__"]
+typeCheckingMode = "standard"
+pythonVersion = "3.11"
+
+[tool.pytest.ini_options]
+markers = [
+    "integration: builds an export and runs the gate in a fresh clone; opt in with -m integration",
+]
+addopts = "-m 'not integration'"

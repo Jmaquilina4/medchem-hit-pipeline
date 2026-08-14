@@ -1,0 +1,57 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:      # so a run can be triggered for a specific commit
+
+# Least privilege: this workflow only reads the tree.
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      # Pinned to immutable commit SHAs, not tags: a tag is mutable, so `@v7` is a promise by the
+      # publisher rather than a fact about the bytes that will run. Both were previously pinned to
+      # node20 releases, which GitHub now annotates as a deprecated runtime; these are the current
+      # node24 releases.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          # Full history. Two gates scan HISTORY, not just the working tree: the leak scan reads every
+          # author and committer address, and check_release_ready.py reads every blob ever committed. At
+          # the default fetch-depth of 1 both would examine a single commit and report the tree clean --
+          # passing by looking at almost nothing, on precisely the checks whose value is that they look
+          # everywhere.
+          fetch-depth: 0
+
+      # setup-uv v10 changes `enable-cache: auto` to DISABLE the cache for pull_request_target,
+      # workflow_run and release events, as cache-poisoning hardening. This workflow triggers on
+      # push, pull_request and workflow_dispatch, and sets enable-cache explicitly, so the new
+      # default does not apply here either way.
+      - name: Install uv
+        uses: astral-sh/setup-uv@ae62891fec2bb8e7d6c99fc78c9fec3a63790f8d  # v10.0.0
+        with:
+          enable-cache: true
+
+      # ONE STEP, ONE SCRIPT. Every check lives in scripts/gate.sh, so there is no second list of
+      # commands here to drift from it.
+      #
+      # The previous arrangement enumerated each check in this file AND in the gate, with a test
+      # comparing the two lists textually. That test could only confirm the strings matched; it could
+      # not catch the gate failing to RUN, which is what happened when a gate step imported a
+      # development-only file the sanitized export does not ship. Executing the gate is the check.
+      #
+      # `--ci` differs from the developer default in exactly one way: a runner creates no commits, so
+      # the leak scan's "set a repository-local noreply identity" finding is unreachable here. The
+      # developer path is a strict superset.
+      #
+      # `docking` is included in the sync on purpose even though CI runs no docking. It is pure Python
+      # (meeko, gemmi, pdb2pqr) with no CUDA and no licence, and leaving it out made CI's environment
+      # differ from a developer's in two ways that both bit: pyright could not resolve `meeko`, and
+      # three ligand-prep tests skipped in CI as well as locally, so they ran nowhere. The docking
+      # ENGINES stay out; they need CUDA or a licence.
+      - name: Gate
+        run: bash scripts/gate.sh --ci

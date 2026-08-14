@@ -1,0 +1,12 @@
+{
+  "what_this_is": "fraction of TEMPORAL test-set compounds whose Murcko scaffold also appears in the temporal training set. Not reported by the evaluation harness, whose leakage.test_scaffold_overlap_frac is the RANDOM 80/20 split.",
+  "panel": "brd4_sensitivity",
+  "cutoff_year": 2022,
+  "n_train": 5555,
+  "n_test": 2400,
+  "n_train_scaffolds": 2207,
+  "temporal_test_scaffold_overlap_frac": 0.09625,
+  "temporal_test_scaffold_overlap_pct": 9.6,
+  "random_split_overlap_frac_for_contrast": 0.6983029541169076,
+  "scaffold_source": "featurize meta.csv, resolved by stage cache key"
+}
