@@ -18,12 +18,12 @@
     "recompute": "python scripts/scientific_source_digest.py [--root TREE]"
   },
   "initial_content_commit": {
-    "sha": null,
-    "note": "first commit holding the content. Release HEAD is one commit LATER, because writing this value is itself a commit -- they are not the same identity and are deliberately not named as if they were."
+    "sha": "ce8d46f3e26b14c9294bac549a0cb35b540b26dd",
+    "note": "first commit holding the content. Release HEAD is one commit LATER: writing this value is itself a commit, so a commit cannot record its own SHA. The two are separate identities."
   },
   "release_tag": {
-    "tag": null,
-    "note": "assigned at publication; a separate authorised step"
+    "tag": "v0.2.0",
+    "note": "assigned at publication. Points at release HEAD, which is this commit -- one after initial_content_commit."
   },
   "interpreter": {
     "python": "3.14",
